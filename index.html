@@ -100,7 +100,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         document.addEventListener('DOMContentLoaded', () => {
             const PRICE_PER_KILO = 400;
@@ -138,14 +138,21 @@
                     clients = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
                     clients.sort((a, b) => (a.surname || '').localeCompare(b.surname || ''));
                     renderAll();
-                }, (error) => console.error("Error al obtener clientes:", error));
+                    document.getElementById('loadingOverlay').classList.add('hidden');
+                }, (error) => {
+                    console.error("Error al obtener clientes:", error);
+                    document.getElementById('loadingOverlay').innerHTML = '<p class="text-red-500">Error al cargar datos. Revisa la consola.</p>';
+                });
 
-                const expensesQuery = query(collection(db, `artifacts/${appId}/users/${userId}/expenses`));
+                const expensesQuery = query(expensesCollectionRef);
                 onSnapshot(expensesQuery, (snapshot) => {
                     expenses = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
                     renderAll();
                     document.getElementById('loadingOverlay').classList.add('hidden');
-                }, (error) => console.error("Error al obtener gastos:", error));
+                }, (error) => {
+                     console.error("Error al obtener gastos:", error);
+                    document.getElementById('loadingOverlay').innerHTML = '<p class="text-red-500">Error al cargar datos. Revisa la consola.</p>';
+                });
             };
             
             const formatCurrency = (value) => (value || 0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP' });
@@ -197,6 +204,4 @@
                 const orderDays = (client.orders || []).filter(o => { const d = new Date(o.date); return d.getFullYear() === year && d.getMonth() === month; }).map(o => new Date(o.date).getDate());
                 const uniqueOrderDays = [...new Set(orderDays)];
 
-                let html = `<div class="flex items-center justify-between mb-2"><button onclick="navigateCalendar('${clientId}', ${year}, ${month - 1})" class="p-1 rounded-full hover:bg-gray-200">&lt;</button><h5 class="font-bold">${monthNames[month]} ${year}</h5><button onclick="navigateCalendar('${clientId}', ${year}, ${month + 1})" class="p-1 rounded-full hover:bg-gray-200">&gt;</button></div>`;
-                html += '<table class="w-full text-center text-sm"><thead><tr>';
-                daysOfWeek.forE
+                let html = `<div class="flex items-center justify-between mb-2"><button onclick="na
