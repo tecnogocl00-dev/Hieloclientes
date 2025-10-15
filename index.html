@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Clientes y Pedidos (con Base de Datos en la Nube)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+        .modal-enter { animation: modal-in 0.3s ease-out forwards; }
+        .modal-leave { animation: modal-out 0.3s ease-in forwards; }
+        @keyframes modal-in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyframes modal-out { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.95); } }
+        details > summary { cursor: pointer; }
+        .calendar-day-marked {
+            background-color: #bfdbfe; /* blue-200 */
+            color: #1e40af; /* blue-800 */
+            font-weight: bold;
+            border-radius: 9999px;
+            cursor: pointer;
+        }
+        .calendar-day-marked:hover {
+             background-color: #93c5fd; /* blue-300 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div id="loadingOverlay" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
+        <svg class="animate-spin h-10 w-10 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+        <p class="mt-4 text-gray-600">Conectando a la base de datos...</p>
+    </div>
+
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-900">Gestor Financiero y de Clientes</h1>
+            <p class="text-gray-600 mt-2">Datos sincronizados en la nube en tiempo real.</p>
+        </header>
+
+        <!-- Dashboard de Resumen -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200 lg:col-span-1">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Resumen Financiero (Mes)</h3>
+                <div class="space-y-2 text-sm text-gray-600">
+                    <p class="flex justify-between"><span>Ventas Brutas:</span> <strong id="salesMonth" class="text-green-600">$0</strong></p>
+                    <p class="flex justify-between"><span>Total Gastos:</span> <strong id="totalExpenses" class="text-red-600">$0</strong></p>
+                    <p class="flex justify-between border-t pt-2 mt-2 text-base"><span>Utilidad Neta:</span> <strong id="netProfit" class="text-blue-700 font-bold">$0</strong></p>
+                </div>
+            </div>
+             <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200 lg:col-span-1">
+                <h3 class="text-lg font-semibold text-gray-500 mb-4">Gastos Recientes</h3>
+                <div id="recentExpensesList" class="space-y-3 max-h-48 overflow-y-auto"></div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                <h3 class="text-lg font-semibold text-yellow-800 mb-4">Pedidos por Entregar</h3>
+                <div id="pendingDeliveryList" class="space-y-3 max-h-48 overflow-y-auto"></div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                <h3 class="text-lg font-semibold text-red-800 mb-4">Clientes que Deben</h3>
+                <div id="pendingDebtorsList" class="space-y-3 max-h-48 overflow-y-auto"></div>
+            </div>
+        </div>
+
+        <!-- Controles: Búsqueda y Acciones -->
+        <div class="flex flex-wrap gap-4 mb-6 sticky top-4 bg-gray-100/95 backdrop-blur-sm py-4 z-10">
+            <div class="relative flex-grow min-w-full md:min-w-0">
+                <input type="text" id="searchInput" placeholder="Buscar cliente..." class="w-full p-3 pl-10 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500">
+                 <svg class="w-5 h-5 text-gray-400 absolute top-1/2 left-3 transform -translate-y-1/2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            </div>
+            <button id="addExpenseBtn" class="bg-red-500 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-red-600 transition flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6" /></svg>
+                Agregar Gasto
+            </button>
+            <button id="exportCsvBtn" class="bg-green-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-green-700 transition flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Exportar Todo
+            </button>
+            <button id="addClientBtn" class="bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                Agregar Cliente
+            </button>
+        </div>
+
+        <div id="clientList" class="space-y-4"></div>
+        <div id="noResults" class="hidden text-center py-10"><p class="text-gray-500">No se encontraron clientes.</p></div>
+    </div>
+
+    <!-- Modals -->
+    <div id="clientModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="clientModalContent" class="bg-white rounded-lg shadow-2xl w-full max-w-md p-6 md:p-8"><form id="clientForm"><h2 id="modalTitle" class="text-2xl font-bold mb-6"></h2><input type="hidden" id="clientId"><div class="mb-4"><label for="surname" class="block text-sm font-medium text-gray-700 mb-1">Apellido</label><input type="text" id="surname" class="w-full p-3 border rounded-md"></div><div class="mb-4"><label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nombre</label><input type="text" id="name" class="w-full p-3 border rounded-md"></div><div class="mb-4"><label for="address" class="block text-sm font-medium text-gray-700 mb-1">Dirección</label><input type="text" id="address" class="w-full p-3 border rounded-md"></div><div class="mb-4"><label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Teléfono (WhatsApp)</label><div class="flex items-center border rounded-md"><span class="px-3 text-gray-500 bg-gray-100">+56</span><input type="tel" id="phone" placeholder="912345678" class="w-full p-3 border-l-0 rounded-r-md"></div></div><div class="mt-8 flex justify-end space-x-4"><button type="button" id="cancelClientBtn" class="bg-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300">Cancelar</button><button type="submit" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-blue-700">Guardar</button></div></form></div></div>
+    <div id="expenseModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="expenseModalContent" class="bg-white rounded-lg shadow-2xl w-full max-w-md p-6 md:p-8"><form id="expenseForm"><h2 class="text-2xl font-bold mb-6">Registrar Nuevo Gasto</h2><div class="mb-4"><label for="expenseDescription" class="block text-sm font-medium text-gray-700 mb-1">Descripción</label><input type="text" id="expenseDescription" class="w-full p-3 border rounded-md" placeholder="Ej: Combustible, bolsas, etc." required></div><div class="mb-4"><label for="expenseAmount" class="block text-sm font-medium text-gray-700 mb-1">Monto ($)</label><input type="number" id="expenseAmount" min="0" step="1" class="w-full p-3 border rounded-md" placeholder="Ej: 15000" required></div><div class="mt-8 flex justify-end space-x-4"><button type="button" id="cancelExpenseBtn" class="bg-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300">Cancelar</button><button type="submit" class="bg-red-500 text-white font-semibold py-2 px-6 rounded-lg hover:bg-red-600">Guardar Gasto</button></div></form></div></div>
+    <div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="paymentModalContent" class="bg-white rounded-lg shadow-2xl w-full max-w-md p-6 md:p-8"><form id="paymentForm"><h2 class="text-2xl font-bold mb-6">Registrar Pago del Pedido</h2><input type="hidden" id="paymentClientId"><input type="hidden" id="paymentOrderId"><div class="mb-4 bg-gray-100 p-3 rounded-md"><p>Cliente: <strong id="paymentClientName"></strong></p><p>Total a Pagar: <strong id="paymentTotalAmount"></strong></p></div><div class="mb-4"><label for="paymentMethod" class="block text-sm font-medium text-gray-700 mb-1">Método de Pago</label><select id="paymentMethod" required class="w-full p-3 border rounded-md"><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option></select></div><div class="mb-4"><label for="paymentStatus" class="block text-sm font-medium text-gray-700 mb-1">Estado del Pago</label><select id="paymentStatus" required class="w-full p-3 border rounded-md"><option value="pagado">Pagado de inmediato</option><option value="debe">Nos debe (pagará después)</option></select></div><div class="mt-8 flex justify-end space-x-4"><button type="button" id="cancelPaymentBtn" class="bg-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300">Cancelar</button><button type="submit" class="bg-green-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-green-700">Confirmar</button></div></form></div></div>
+    <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden"><div id="confirmModalContent" class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center"><h3 class="text-lg font-medium text-gray-900">Confirmar Acción</h3><p id="confirmMessage" class="mt-2 text-sm text-gray-500"></p><div class="mt-6 flex justify-center gap-4"><button id="confirmCancelBtn" class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300">Cancelar</button><button id="confirmOkBtn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Eliminar</button></div></div></div>
+    <div id="orderDetailsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="orderDetailsModalContent" class="bg-white rounded-lg shadow-2xl w-full max-w-lg p-6 md:p-8"><h2 id="orderDetailsTitle" class="text-2xl font-bold mb-6 text-gray-800">Detalles del Pedido</h2><div id="orderDetailsBody" class="space-y-4"></div><div class="mt-8 flex justify-end"><button type="button" id="closeOrderDetailsBtn" class="bg-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300">Cerrar</button></div></div></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const PRICE_PER_KILO = 400;
+            let clients = [];
+            let expenses = [];
+            let db, auth, userId, clientsCollectionRef, expensesCollectionRef;
+
+            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+            } catch (error) {
+                console.error("Error al inicializar Firebase:", error);
+                document.getElementById('loadingOverlay').innerHTML = '<p class="text-red-500">Error de conexión con la base de datos.</p>';
+                return;
+            }
+
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    clientsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/clients`);
+                    expensesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/expenses`);
+                    setupRealtimeListeners();
+                } else {
+                    await signInAnonymously(auth).catch(err => console.error("Fallo el inicio de sesión anónimo:", err));
+                }
+            });
+
+            const setupRealtimeListeners = () => {
+                const clientsQuery = query(clientsCollectionRef);
+                onSnapshot(clientsQuery, (snapshot) => {
+                    clients = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+                    clients.sort((a, b) => (a.surname || '').localeCompare(b.surname || ''));
+                    renderAll();
+                }, (error) => console.error("Error al obtener clientes:", error));
+
+                const expensesQuery = query(collection(db, `artifacts/${appId}/users/${userId}/expenses`));
+                onSnapshot(expensesQuery, (snapshot) => {
+                    expenses = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+                    renderAll();
+                    document.getElementById('loadingOverlay').classList.add('hidden');
+                }, (error) => console.error("Error al obtener gastos:", error));
+            };
+            
+            const formatCurrency = (value) => (value || 0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP' });
+            const formatDate = (dateString) => new Date(dateString).toLocaleDateString('es-CL', { year: 'numeric', month: 'short', day: 'numeric' });
+            
+            const renderAll = () => { renderDashboard(); renderClients(document.getElementById('searchInput').value); };
+            
+            const now = new Date();
+            const isThisMonth = d => d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+
+            const renderDashboard = () => {
+                const monthlyOrders = clients.flatMap(c => c.orders || []).filter(o => o.status !== 'pendiente' && isThisMonth(new Date(o.date)));
+                const monthlySales = monthlyOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+                
+                const monthlyExpenses = expenses.filter(e => isThisMonth(new Date(e.date)));
+                const totalMonthlyExpenses = monthlyExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
+                
+                const netProfit = monthlySales - totalMonthlyExpenses;
+
+                document.getElementById('salesMonth').textContent = formatCurrency(monthlySales);
+                document.getElementById('totalExpenses').textContent = formatCurrency(totalMonthlyExpenses);
+                document.getElementById('netProfit').textContent = formatCurrency(netProfit);
+
+                const renderList = (elementId, orders, emptyText, itemClass) => {
+                    const listEl = document.getElementById(elementId);
+                    listEl.innerHTML = orders.length === 0 ? `<p class="text-sm text-gray-500">${emptyText}</p>` :
+                        orders.map(order => `<div class="text-sm flex justify-between items-center ${itemClass} p-2 rounded-md"><div><p class="font-semibold">${order.clientName}</p><p class="text-gray-600">${formatDate(order.date)} - <span class="font-bold">${formatCurrency(order.total)}</span></p></div><a href="#client-${order.clientDocId}" class="text-blue-500 hover:underline">Ver</a></div>`).join('');
+                };
+                
+                const allOrders = clients.flatMap(c => (c.orders || []).map(o => ({...o, clientName: `${c.name} ${c.surname}`, clientDocId: c.docId })));
+                renderList('pendingDeliveryList', allOrders.filter(o => o.status === 'pendiente').sort((a,b) => new Date(a.date) - new Date(b.date)), 'No hay pedidos por entregar.', 'bg-yellow-50');
+                renderList('pendingDebtorsList', allOrders.filter(o => o.status === 'debe').sort((a,b) => new Date(a.date) - new Date(b.date)), 'No hay deudas pendientes.', 'bg-red-50');
+                
+                const recentExpensesListEl = document.getElementById('recentExpensesList');
+                const recentExpenses = [...expenses].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+                recentExpensesListEl.innerHTML = recentExpenses.length === 0 ? `<p class="text-sm text-gray-500">No hay gastos registrados.</p>` :
+                    recentExpenses.map(expense => `<div class="text-sm flex justify-between items-center bg-gray-50 p-2 rounded-md"><div><p class="font-semibold">${expense.description}</p><p class="text-gray-600">${formatDate(expense.date)}</p></div><div class="flex items-center gap-2"><strong class="text-red-600">${formatCurrency(expense.amount)}</strong><button onclick="deleteExpense('${expense.docId}')" class="text-gray-400 hover:text-red-600 p-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div></div>`).join('');
+            };
+
+            window.renderCalendar = (clientId, year, month) => {
+                const client = clients.find(c => c.docId === clientId);
+                const calendarEl = document.getElementById(`calendar-${clientId}`);
+                if (!client || !calendarEl) return;
+
+                const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+                const daysOfWeek = ["Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sá"];
+                const firstDay = new Date(year, month).getDay();
+                const daysInMonth = 32 - new Date(year, month, 32).getDate();
+                const orderDays = (client.orders || []).filter(o => { const d = new Date(o.date); return d.getFullYear() === year && d.getMonth() === month; }).map(o => new Date(o.date).getDate());
+                const uniqueOrderDays = [...new Set(orderDays)];
+
+                let html = `<div class="flex items-center justify-between mb-2"><button onclick="navigateCalendar('${clientId}', ${year}, ${month - 1})" class="p-1 rounded-full hover:bg-gray-200">&lt;</button><h5 class="font-bold">${monthNames[month]} ${year}</h5><button onclick="navigateCalendar('${clientId}', ${year}, ${month + 1})" class="p-1 rounded-full hover:bg-gray-200">&gt;</button></div>`;
+                html += '<table class="w-full text-center text-sm"><thead><tr>';
+                daysOfWeek.forE
