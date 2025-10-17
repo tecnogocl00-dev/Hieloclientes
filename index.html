@@ -1,21 +1,33 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestor de Clientes y Pedidos (con Base de Datos en la Nube)</title>
+    <title>Gestor de Clientes Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        // Aplica el modo oscuro al instante para evitar parpadeos
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
     <style>
         body { font-family: 'Inter', sans-serif; }
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
+        .dark ::-webkit-scrollbar-track { background: #2d3748; }
         ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #4a5568; }
         ::-webkit-scrollbar-thumb:hover { background: #555; }
         .modal-enter { animation: modal-in 0.3s ease-out forwards; }
         .modal-leave { animation: modal-out 0.3s ease-in forwards; }
-        @keyframes modal-in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        @keyframes modal-out { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.95); } }
+        @keyframes modal-in { from { opacity: 0; transform: translateY(20px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes modal-out { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(20px) scale(0.98); } }
+        details > summary { list-style: none; }
+        details > summary::-webkit-details-marker { display: none; }
         details > summary { cursor: pointer; }
         .calendar-day-marked {
             background-color: #bfdbfe; /* blue-200 */
@@ -24,172 +36,173 @@
             border-radius: 9999px;
             cursor: pointer;
         }
-        .calendar-day-marked:hover {
-             background-color: #93c5fd; /* blue-300 */
-        }
+        .dark .calendar-day-marked { background-color: #3182ce; color: #ebf8ff; }
+        .calendar-day-marked:hover { background-color: #93c5fd; }
+        .dark .calendar-day-marked:hover { background-color: #4299e1; }
+        
+        /* Estilos para notificaciones Toast */
+        #toastContainer { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 100; display: flex; flex-direction: column; gap: 0.75rem; }
+        .toast { display: flex; align-items: center; padding: 1rem; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); transform: translateX(120%); opacity: 0; transition: all 0.4s ease-in-out; }
+        .toast.show { transform: translateX(0); opacity: 1; }
+        .toast.success { background-color: #34d399; color: white; }
+        .toast.error { background-color: #f87171; color: white; }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
 
-    <div id="loadingOverlay" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
+    <div id="loadingOverlay" class="fixed inset-0 bg-white dark:bg-gray-900 z-50 flex flex-col items-center justify-center text-center p-4">
         <svg class="animate-spin h-10 w-10 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-        <p class="mt-4 text-gray-600">Conectando a la base de datos...</p>
+        <p id="loadingMessage" class="mt-4 text-gray-600 dark:text-gray-400">Conectando a la base de datos...</p>
     </div>
 
+    <div id="toastContainer"></div>
+
     <div class="container mx-auto p-4 md:p-8 max-w-7xl">
-        <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-900">Gestor Financiero y de Clientes</h1>
-            <p class="text-gray-600 mt-2">Datos sincronizados en la nube en tiempo real.</p>
+        <header class="flex justify-between items-center mb-8">
+            <div class="text-left">
+                <h1 class="text-4xl font-bold text-gray-900 dark:text-white">Gestor Pro</h1>
+                <p class="text-gray-600 dark:text-gray-400 mt-2">Finanzas y Clientes en tu nube personal.</p>
+            </div>
+            <button id="themeToggleBtn" class="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-900">
+                <svg id="themeIconSun" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                <svg id="themeIconMoon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+            </button>
         </header>
 
         <!-- Dashboard de Resumen -->
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
-            <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200 lg:col-span-1">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Resumen Financiero (Mes)</h3>
-                <div class="space-y-2 text-sm text-gray-600">
-                    <p class="flex justify-between"><span>Ventas Brutas:</span> <strong id="salesMonth" class="text-green-600">$0</strong></p>
-                    <p class="flex justify-between"><span>Total Gastos:</span> <strong id="totalExpenses" class="text-red-600">$0</strong></p>
-                    <p class="flex justify-between border-t pt-2 mt-2 text-base"><span>Utilidad Neta:</span> <strong id="netProfit" class="text-blue-700 font-bold">$0</strong></p>
+         <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 lg:col-span-1">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Resumen Financiero</h3>
+                    <div class="flex gap-2">
+                        <select id="dashboardMonth" class="bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-1"></select>
+                        <select id="dashboardYear" class="bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-1"></select>
+                    </div>
+                </div>
+                <div class="space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                    <p class="flex justify-between"><span>Ventas Brutas:</span> <strong id="salesMonth" class="text-green-600 dark:text-green-400">$0</strong></p>
+                    <p class="flex justify-between"><span>Total Gastos:</span> <strong id="totalExpenses" class="text-red-600 dark:text-red-400">$0</strong></p>
+                    <p class="flex justify-between border-t dark:border-gray-600 pt-2 mt-2 text-base"><span>Utilidad Neta:</span> <strong id="netProfit" class="text-blue-700 dark:text-blue-400 font-bold">$0</strong></p>
                 </div>
             </div>
-             <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200 lg:col-span-1">
-                <h3 class="text-lg font-semibold text-gray-500 mb-4">Gastos Recientes</h3>
+             <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 lg:col-span-1">
+                <h3 class="text-lg font-semibold text-gray-500 dark:text-gray-300 mb-4">Gastos Recientes</h3>
                 <div id="recentExpensesList" class="space-y-3 max-h-48 overflow-y-auto"></div>
             </div>
-            <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-                <h3 class="text-lg font-semibold text-yellow-800 mb-4">Pedidos por Entregar</h3>
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-yellow-800 dark:text-yellow-400 mb-4">Pedidos por Entregar</h3>
                 <div id="pendingDeliveryList" class="space-y-3 max-h-48 overflow-y-auto"></div>
             </div>
-            <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-                <h3 class="text-lg font-semibold text-red-800 mb-4">Clientes que Deben</h3>
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-red-800 dark:text-red-400 mb-4">Clientes que Deben</h3>
                 <div id="pendingDebtorsList" class="space-y-3 max-h-48 overflow-y-auto"></div>
             </div>
         </div>
 
         <!-- Controles: Búsqueda y Acciones -->
-        <div class="flex flex-wrap gap-4 mb-6 sticky top-4 bg-gray-100/95 backdrop-blur-sm py-4 z-10">
+        <div class="flex flex-wrap gap-4 mb-6 sticky top-4 bg-gray-100/80 dark:bg-gray-900/80 backdrop-blur-sm py-4 z-10 rounded-lg">
             <div class="relative flex-grow min-w-full md:min-w-0">
-                <input type="text" id="searchInput" placeholder="Buscar cliente..." class="w-full p-3 pl-10 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="searchInput" placeholder="Buscar cliente por nombre o dirección..." class="w-full p-3 pl-10 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
                  <svg class="w-5 h-5 text-gray-400 absolute top-1/2 left-3 transform -translate-y-1/2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             </div>
+            <button id="settingsBtn" class="bg-gray-500 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-gray-600 transition flex items-center justify-center gap-2"><svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>Ajustes</button>
+            <button id="salesHelperBtn" class="bg-purple-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-purple-700 transition flex items-center justify-center gap-2"><svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h3m-3-10h.01M9 10h.01M12 10h.01M12 7v3m0 7v3m-3-10h.01M6 21h12a2 2 0 002-2V5a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>Ayuda Venta</button>
             <button id="addExpenseBtn" class="bg-red-500 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-red-600 transition flex items-center justify-center gap-2">
-                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6" /></svg>
-                Agregar Gasto
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6"></path></svg>
+                Gasto
             </button>
-            <button id="exportCsvBtn" class="bg-green-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-green-700 transition flex items-center justify-center gap-2">
-                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                Exportar Todo
-            </button>
-            <button id="addClientBtn" class="bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 transition flex items-center justify-center gap-2">
-                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-                Agregar Cliente
-            </button>
+            <button id="exportCsvBtn" class="bg-green-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-green-700 transition flex items-center justify-center gap-2"><svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>Exportar</button>
+            <button id="addClientBtn" class="bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 transition flex items-center justify-center gap-2"><svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>Cliente</button>
         </div>
 
         <div id="clientList" class="space-y-4"></div>
-        <div id="noResults" class="hidden text-center py-10"><p class="text-gray-500">No se encontraron clientes.</p></div>
+        <div id="noResults" class="hidden text-center py-10"><p class="text-gray-500 dark:text-gray-400">No se encontraron clientes.</p></div>
     </div>
 
     <!-- Modals -->
-    <div id="clientModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="clientModalContent" class="bg-white rounded-lg shadow-2xl w-full max-w-md p-6 md:p-8"><form id="clientForm"><h2 id="modalTitle" class="text-2xl font-bold mb-6"></h2><input type="hidden" id="clientId"><div class="mb-4"><label for="surname" class="block text-sm font-medium text-gray-700 mb-1">Apellido</label><input type="text" id="surname" class="w-full p-3 border rounded-md"></div><div class="mb-4"><label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nombre</label><input type="text" id="name" class="w-full p-3 border rounded-md"></div><div class="mb-4"><label for="address" class="block text-sm font-medium text-gray-700 mb-1">Dirección</label><input type="text" id="address" class="w-full p-3 border rounded-md"></div><div class="mb-4"><label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Teléfono (WhatsApp)</label><div class="flex items-center border rounded-md"><span class="px-3 text-gray-500 bg-gray-100">+56</span><input type="tel" id="phone" placeholder="912345678" class="w-full p-3 border-l-0 rounded-r-md"></div></div><div class="mt-8 flex justify-end space-x-4"><button type="button" id="cancelClientBtn" class="bg-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300">Cancelar</button><button type="submit" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-blue-700">Guardar</button></div></form></div></div>
-    <div id="expenseModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="expenseModalContent" class="bg-white rounded-lg shadow-2xl w-full max-w-md p-6 md:p-8"><form id="expenseForm"><h2 class="text-2xl font-bold mb-6">Registrar Nuevo Gasto</h2><div class="mb-4"><label for="expenseDescription" class="block text-sm font-medium text-gray-700 mb-1">Descripción</label><input type="text" id="expenseDescription" class="w-full p-3 border rounded-md" placeholder="Ej: Combustible, bolsas, etc." required></div><div class="mb-4"><label for="expenseAmount" class="block text-sm font-medium text-gray-700 mb-1">Monto ($)</label><input type="number" id="expenseAmount" min="0" step="1" class="w-full p-3 border rounded-md" placeholder="Ej: 15000" required></div><div class="mt-8 flex justify-end space-x-4"><button type="button" id="cancelExpenseBtn" class="bg-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300">Cancelar</button><button type="submit" class="bg-red-500 text-white font-semibold py-2 px-6 rounded-lg hover:bg-red-600">Guardar Gasto</button></div></form></div></div>
-    <div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="paymentModalContent" class="bg-white rounded-lg shadow-2xl w-full max-w-md p-6 md:p-8"><form id="paymentForm"><h2 class="text-2xl font-bold mb-6">Registrar Pago del Pedido</h2><input type="hidden" id="paymentClientId"><input type="hidden" id="paymentOrderId"><div class="mb-4 bg-gray-100 p-3 rounded-md"><p>Cliente: <strong id="paymentClientName"></strong></p><p>Total a Pagar: <strong id="paymentTotalAmount"></strong></p></div><div class="mb-4"><label for="paymentMethod" class="block text-sm font-medium text-gray-700 mb-1">Método de Pago</label><select id="paymentMethod" required class="w-full p-3 border rounded-md"><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option></select></div><div class="mb-4"><label for="paymentStatus" class="block text-sm font-medium text-gray-700 mb-1">Estado del Pago</label><select id="paymentStatus" required class="w-full p-3 border rounded-md"><option value="pagado">Pagado de inmediato</option><option value="debe">Nos debe (pagará después)</option></select></div><div class="mt-8 flex justify-end space-x-4"><button type="button" id="cancelPaymentBtn" class="bg-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300">Cancelar</button><button type="submit" class="bg-green-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-green-700">Confirmar</button></div></form></div></div>
-    <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden"><div id="confirmModalContent" class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center"><h3 class="text-lg font-medium text-gray-900">Confirmar Acción</h3><p id="confirmMessage" class="mt-2 text-sm text-gray-500"></p><div class="mt-6 flex justify-center gap-4"><button id="confirmCancelBtn" class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300">Cancelar</button><button id="confirmOkBtn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Eliminar</button></div></div></div>
-    <div id="orderDetailsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="orderDetailsModalContent" class="bg-white rounded-lg shadow-2xl w-full max-w-lg p-6 md:p-8"><h2 id="orderDetailsTitle" class="text-2xl font-bold mb-6 text-gray-800">Detalles del Pedido</h2><div id="orderDetailsBody" class="space-y-4"></div><div class="mt-8 flex justify-end"><button type="button" id="closeOrderDetailsBtn" class="bg-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300">Cerrar</button></div></div></div>
+    <div id="clientModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="clientModalContent" class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-md p-6 md:p-8"><form id="clientForm"><h2 id="modalTitle" class="text-2xl font-bold mb-6"></h2><input type="hidden" id="clientId"><div class="mb-4"><label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre Completo</label><input type="text" id="name" class="w-full p-3 border rounded-md dark:bg-gray-700 dark:border-gray-600" required></div><div class="mb-4"><label for="address" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dirección</label><input type="text" id="address" class="w-full p-3 border rounded-md dark:bg-gray-700 dark:border-gray-600"></div><div class="mb-4"><label for="phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Teléfono (WhatsApp)</label><div class="flex items-center border rounded-md dark:border-gray-600"><span class="px-3 text-gray-500 bg-gray-100 dark:bg-gray-600">+56</span><input type="tel" id="phone" placeholder="912345678" class="w-full p-3 border-l-0 rounded-r-md dark:bg-gray-700"></div></div><div class="mt-8 flex justify-end space-x-4"><button type="button" class="cancel-btn bg-gray-200 dark:bg-gray-600 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">Cancelar</button><button type="submit" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-blue-700">Guardar</button></div></form></div></div>
+    <div id="expenseModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="expenseModalContent" class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-md p-6 md:p-8"><form id="expenseForm"><h2 class="text-2xl font-bold mb-6">Registrar Nuevo Gasto</h2><div class="mb-4"><label for="expenseDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción</label><input type="text" id="expenseDescription" class="w-full p-3 border rounded-md dark:bg-gray-700 dark:border-gray-600" placeholder="Ej: Combustible, bolsas, etc." required></div><div class="mb-4"><label for="expenseCategory" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoría</label><select id="expenseCategory" class="w-full p-3 border rounded-md dark:bg-gray-700 dark:border-gray-600"><option>Combustible</option><option>Insumos</option><option>Mantenimiento</option><option>Otro</option></select></div><div class="mb-4"><label for="expenseAmount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Monto ($)</label><input type="number" id="expenseAmount" min="0" step="1" class="w-full p-3 border rounded-md dark:bg-gray-700 dark:border-gray-600" placeholder="Ej: 15000" required></div><div class="mt-8 flex justify-end space-x-4"><button type="button" class="cancel-btn bg-gray-200 dark:bg-gray-600 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">Cancelar</button><button type="submit" class="bg-red-500 text-white font-semibold py-2 px-6 rounded-lg hover:bg-red-600">Guardar Gasto</button></div></form></div></div>
+    <div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="paymentModalContent" class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-md p-6 md:p-8"><form id="paymentForm"><h2 class="text-2xl font-bold mb-6">Registrar Pago del Pedido</h2><input type="hidden" id="paymentClientId"><input type="hidden" id="paymentOrderId"><div class="mb-4 bg-gray-100 dark:bg-gray-700 p-3 rounded-md"><p>Cliente: <strong id="paymentClientName"></strong></p><p>Total a Pagar: <strong id="paymentTotalAmount"></strong></p></div><div class="mb-4"><label for="paymentMethod" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Método de Pago</label><select id="paymentMethod" required class="w-full p-3 border rounded-md dark:bg-gray-700 dark:border-gray-600"><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option></select></div><div class="mb-4"><label for="paymentStatus" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Estado del Pago</label><select id="paymentStatus" required class="w-full p-3 border rounded-md dark:bg-gray-700 dark:border-gray-600"><option value="pagado">Pagado de inmediato</option><option value="debe">Nos debe (pagará después)</option></select></div><div class="mt-8 flex justify-end space-x-4"><button type="button" class="cancel-btn bg-gray-200 dark:bg-gray-600 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">Cancelar</button><button type="submit" class="bg-green-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-green-700">Confirmar</button></div></form></div></div>
+    <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden"><div id="confirmModalContent" class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-sm p-6 text-center"><h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Confirmar Acción</h3><p id="confirmMessage" class="mt-2 text-sm text-gray-500 dark:text-gray-400"></p><div class="mt-6 flex justify-center gap-4"><button id="confirmCancelBtn" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">Cancelar</button><button id="confirmOkBtn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Confirmar</button></div></div></div>
+    <div id="orderDetailsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="orderDetailsModalContent" class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-lg p-6 md:p-8"><h2 id="orderDetailsTitle" class="text-2xl font-bold mb-6 text-gray-800 dark:text-gray-100">Detalles del Pedido</h2><div id="orderDetailsBody" class="space-y-4"></div><div class="mt-8 flex justify-end"><button type="button" class="close-btn bg-gray-200 dark:bg-gray-600 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">Cerrar</button></div></div></div>
+    <div id="salesHelperModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="salesHelperModalContent" class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-sm p-6 md:p-8"><h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-gray-100">Ayuda de Venta</h2><div class="mb-4"><label for="saleQuantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cantidad (kg)</label><input type="number" id="saleQuantity" min="0" step="any" class="w-full p-3 border rounded-md text-center text-lg dark:bg-gray-700 dark:border-gray-600" placeholder="Ingresa cantidad..."></div><div class="flex justify-center gap-2 mb-6"><button onclick="window.setSaleQuantity(20)" class="bg-gray-200 dark:bg-gray-600 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">20 kg</button><button onclick="window.setSaleQuantity(30)" class="bg-gray-200 dark:bg-gray-600 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">30 kg</button><button onclick="window.setSaleQuantity(40)" class="bg-gray-200 dark:bg-gray-600 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">40 kg</button></div><div class="text-center bg-blue-50 dark:bg-gray-700 p-4 rounded-lg"><p class="text-gray-600 dark:text-gray-300">Total a Cobrar:</p><p id="saleTotal" class="text-3xl font-bold text-blue-700 dark:text-blue-400">$0</p></div><div class="mt-8 flex justify-end"><button type="button" class="close-btn bg-gray-500 text-white font-semibold py-2 px-6 rounded-lg hover:bg-gray-600">Cerrar</button></div></div></div>
+    <div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="settingsModalContent" class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-md p-6 md:p-8"><h2 class="text-2xl font-bold mb-6">Ajustes Generales</h2><div class="mb-4"><label for="pricePerKilo" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Precio por Kilo ($)</label><input type="number" id="pricePerKilo" min="0" class="w-full p-3 border rounded-md dark:bg-gray-700 dark:border-gray-600"></div><div class="mt-8 flex justify-end space-x-4"><button type="button" class="cancel-btn bg-gray-200 dark:bg-gray-600 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">Cancelar</button><button id="saveSettingsBtn" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-blue-700">Guardar Ajustes</button></div></div></div>
+    <div id="exportModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="exportModalContent" class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-md p-6 md:p-8"><h2 class="text-2xl font-bold mb-6">Exportar Reporte de Ventas</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div class="mb-4"><label for="exportStartDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha de Inicio</label><input type="date" id="exportStartDate" class="w-full p-3 border rounded-md dark:bg-gray-700 dark:border-gray-600"></div><div class="mb-4"><label for="exportEndDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha de Fin</label><input type="date" id="exportEndDate" class="w-full p-3 border rounded-md dark:bg-gray-700 dark:border-gray-600"></div></div><p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Deja las fechas en blanco para exportar todos los datos.</p><div class="mt-8 flex justify-end space-x-4"><button type="button" class="cancel-btn bg-gray-200 dark:bg-gray-600 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">Cancelar</button><button id="confirmExportBtn" class="bg-green-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-green-700">Exportar CSV</button></div></div></div>
+
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, query } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 
+        const firebaseConfig = {
+            apiKey: "AIzaSyCfvD_e3rCHiBZHwTC5h6L1dECKQPo-F7s",
+            authDomain: "clientes-8fcad.firebaseapp.com",
+            projectId: "clientes-8fcad",
+            storageBucket: "clientes-8fcad.firebasestorage.app",
+            messagingSenderId: "954626529421",
+            appId: "1:954626529421:web:a228a2f2eb79d6bd4e2ac4"
+        };
+
+        // All logic inside DOMContentLoaded to ensure elements are available.
         document.addEventListener('DOMContentLoaded', () => {
-            const PRICE_PER_KILO = 400;
+            
+            //--- STATE & CONFIG ---
+            let pricePerKilo = 400;
             let clients = [];
             let expenses = [];
             let db, auth, userId, clientsCollectionRef, expensesCollectionRef;
+            let dashboardDate = new Date();
+            let confirmCallback = null;
 
-            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-            try {
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-            } catch (error) {
-                console.error("Error al inicializar Firebase:", error);
-                document.getElementById('loadingOverlay').innerHTML = '<p class="text-red-500">Error de conexión con la base de datos.</p>';
-                return;
-            }
-
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    userId = user.uid;
-                    clientsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/clients`);
-                    expensesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/expenses`);
-                    setupRealtimeListeners();
-                } else {
-                    await signInAnonymously(auth).catch(err => console.error("Fallo el inicio de sesión anónimo:", err));
-                }
-            });
-
-            const setupRealtimeListeners = () => {
-                const clientsQuery = query(clientsCollectionRef);
-                onSnapshot(clientsQuery, (snapshot) => {
-                    clients = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-                    clients.sort((a, b) => (a.surname || '').localeCompare(b.surname || ''));
-                    renderAll();
-                    document.getElementById('loadingOverlay').classList.add('hidden');
-                }, (error) => {
-                    console.error("Error al obtener clientes:", error);
-                    document.getElementById('loadingOverlay').innerHTML = '<p class="text-red-500">Error al cargar datos. Revisa la consola.</p>';
-                });
-
-                const expensesQuery = query(expensesCollectionRef);
-                onSnapshot(expensesQuery, (snapshot) => {
-                    expenses = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-                    renderAll();
-                    document.getElementById('loadingOverlay').classList.add('hidden');
-                }, (error) => {
-                     console.error("Error al obtener gastos:", error);
-                    document.getElementById('loadingOverlay').innerHTML = '<p class="text-red-500">Error al cargar datos. Revisa la consola.</p>';
-                });
+            const modals = { 
+                clientModal: document.getElementById('clientModal'), 
+                expenseModal: document.getElementById('expenseModal'), 
+                paymentModal: document.getElementById('paymentModal'), 
+                confirmModal: document.getElementById('confirmModal'), 
+                orderDetailsModal: document.getElementById('orderDetailsModal'), 
+                salesHelperModal: document.getElementById('salesHelperModal'), 
+                settingsModal: document.getElementById('settingsModal'), 
+                exportModal: document.getElementById('exportModal') 
             };
-            
+
+            //--- UTILITY & UI FUNCTIONS ---
             const formatCurrency = (value) => (value || 0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP' });
             const formatDate = (dateString) => new Date(dateString).toLocaleDateString('es-CL', { year: 'numeric', month: 'short', day: 'numeric' });
-            
+            const showToast = (message, type = 'success') => { const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.innerHTML = `<span>${message}</span>`; document.getElementById('toastContainer').appendChild(toast); setTimeout(() => { toast.classList.add('show'); }, 10); setTimeout(() => { toast.classList.remove('show'); setTimeout(() => { toast.remove(); }, 400); }, 3000); };
+            const openModal = (modal) => { modal.classList.remove('hidden'); modal.querySelector('div[id$="Content"]').classList.add('modal-enter'); };
+            const closeModal = (modal) => { const content = modal.querySelector('div[id$="Content"]'); content.classList.remove('modal-enter'); content.classList.add('modal-leave'); setTimeout(() => { modal.classList.add('hidden'); content.classList.remove('modal-leave'); }, 300); };
+            const escapeHTML = str => str.replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+
+            //--- RENDER FUNCTIONS ---
             const renderAll = () => { renderDashboard(); renderClients(document.getElementById('searchInput').value); };
             
-            const now = new Date();
-            const isThisMonth = d => d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-
             const renderDashboard = () => {
-                const monthlyOrders = clients.flatMap(c => c.orders || []).filter(o => o.status !== 'pendiente' && isThisMonth(new Date(o.date)));
+                const isSelectedMonth = d => d.getMonth() === dashboardDate.getMonth() && d.getFullYear() === dashboardDate.getFullYear();
+                const monthlyOrders = clients.flatMap(c => c.orders || []).filter(o => o.status !== 'pendiente' && isSelectedMonth(new Date(o.date)));
                 const monthlySales = monthlyOrders.reduce((sum, order) => sum + (order.total || 0), 0);
                 
-                const monthlyExpenses = expenses.filter(e => isThisMonth(new Date(e.date)));
+                const monthlyExpenses = expenses.filter(e => isSelectedMonth(new Date(e.date)));
                 const totalMonthlyExpenses = monthlyExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
                 
-                const netProfit = monthlySales - totalMonthlyExpenses;
-
                 document.getElementById('salesMonth').textContent = formatCurrency(monthlySales);
                 document.getElementById('totalExpenses').textContent = formatCurrency(totalMonthlyExpenses);
-                document.getElementById('netProfit').textContent = formatCurrency(netProfit);
+                document.getElementById('netProfit').textContent = formatCurrency(monthlySales - totalMonthlyExpenses);
 
                 const renderList = (elementId, orders, emptyText, itemClass) => {
                     const listEl = document.getElementById(elementId);
-                    listEl.innerHTML = orders.length === 0 ? `<p class="text-sm text-gray-500">${emptyText}</p>` :
-                        orders.map(order => `<div class="text-sm flex justify-between items-center ${itemClass} p-2 rounded-md"><div><p class="font-semibold">${order.clientName}</p><p class="text-gray-600">${formatDate(order.date)} - <span class="font-bold">${formatCurrency(order.total)}</span></p></div><a href="#client-${order.clientDocId}" class="text-blue-500 hover:underline">Ver</a></div>`).join('');
+                    listEl.innerHTML = orders.length === 0 ? `<p class="text-sm text-gray-500 dark:text-gray-400">${emptyText}</p>` :
+                        orders.map(order => `<div class="text-sm flex justify-between items-center ${itemClass} dark:bg-opacity-20 p-2 rounded-md"><div><p class="font-semibold">${order.clientName}</p><p class="text-gray-600 dark:text-gray-300">${formatDate(order.date)} - <span class="font-bold">${formatCurrency(order.total)}</span></p></div><a href="#client-${order.clientDocId}" class="text-blue-500 hover:underline">Ver</a></div>`).join('');
                 };
                 
-                const allOrders = clients.flatMap(c => (c.orders || []).map(o => ({...o, clientName: `${c.name} ${c.surname}`, clientDocId: c.docId })));
+                const allOrders = clients.flatMap(c => (c.orders || []).map(o => ({...o, clientName: c.name, clientDocId: c.docId })));
                 renderList('pendingDeliveryList', allOrders.filter(o => o.status === 'pendiente').sort((a,b) => new Date(a.date) - new Date(b.date)), 'No hay pedidos por entregar.', 'bg-yellow-50');
                 renderList('pendingDebtorsList', allOrders.filter(o => o.status === 'debe').sort((a,b) => new Date(a.date) - new Date(b.date)), 'No hay deudas pendientes.', 'bg-red-50');
                 
                 const recentExpensesListEl = document.getElementById('recentExpensesList');
                 const recentExpenses = [...expenses].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
-                recentExpensesListEl.innerHTML = recentExpenses.length === 0 ? `<p class="text-sm text-gray-500">No hay gastos registrados.</p>` :
-                    recentExpenses.map(expense => `<div class="text-sm flex justify-between items-center bg-gray-50 p-2 rounded-md"><div><p class="font-semibold">${expense.description}</p><p class="text-gray-600">${formatDate(expense.date)}</p></div><div class="flex items-center gap-2"><strong class="text-red-600">${formatCurrency(expense.amount)}</strong><button onclick="deleteExpense('${expense.docId}')" class="text-gray-400 hover:text-red-600 p-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div></div>`).join('');
+                recentExpensesListEl.innerHTML = recentExpenses.length === 0 ? `<p class="text-sm text-gray-500 dark:text-gray-400">No hay gastos registrados.</p>` :
+                    recentExpenses.map(expense => `<div class="text-sm flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-2 rounded-md"><div><p class="font-semibold">${expense.description}</p><p class="text-gray-600 dark:text-gray-400 text-xs">${expense.category} - ${formatDate(expense.date)}</p></div><div class="flex items-center gap-2"><strong class="text-red-600 dark:text-red-400">${formatCurrency(expense.amount)}</strong><button onclick="window.deleteExpense('${expense.docId}', '${escapeHTML(expense.description)}')" class="text-gray-400 hover:text-red-600 p-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div></div>`).join('');
             };
 
             window.renderCalendar = (clientId, year, month) => {
@@ -204,4 +217,250 @@
                 const orderDays = (client.orders || []).filter(o => { const d = new Date(o.date); return d.getFullYear() === year && d.getMonth() === month; }).map(o => new Date(o.date).getDate());
                 const uniqueOrderDays = [...new Set(orderDays)];
 
-                let html = `<div class="flex items-center justify-between mb-2"><button onclick="na
+                let html = `<div class="flex items-center justify-between mb-2"><button onclick="window.navigateCalendar('${clientId}', ${year}, ${month - 1})" class="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600">&lt;</button><h5 class="font-bold">${monthNames[month]} ${year}</h5><button onclick="window.navigateCalendar('${clientId}', ${year}, ${month + 1})" class="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600">&gt;</button></div>`;
+                html += '<table class="w-full text-center text-sm"><thead><tr>';
+                daysOfWeek.forEach(day => { html += `<th>${day}</th>`; });
+                html += '</tr></thead><tbody>';
+
+                let date = 1;
+                for (let i = 0; i < 6; i++) {
+                    html += '<tr>';
+                    for (let j = 0; j < 7; j++) {
+                        if (i === 0 && j < firstDay) { html += '<td></td>'; } 
+                        else if (date > daysInMonth) { break; } 
+                        else {
+                            const isMarked = uniqueOrderDays.includes(date);
+                            const fullDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+                            html += `<td class="p-1"><span class="w-8 h-8 flex items-center justify-center ${isMarked ? 'calendar-day-marked' : ''}" ${isMarked ? `onclick="window.showOrderDetails('${clientId}', '${fullDate}')"` : ''}>${date}</span></td>`;
+                            date++;
+                        }
+                    }
+                    html += '</tr>';
+                    if (date > daysInMonth) break;
+                }
+                html += '</tbody></table>';
+                calendarEl.innerHTML = html;
+            };
+
+            window.navigateCalendar = (clientId, year, month) => {
+                const newDate = new Date(year, month);
+                window.renderCalendar(clientId, newDate.getFullYear(), newDate.getMonth());
+            };
+            
+            const renderClients = (filter = '') => {
+                const clientListEl = document.getElementById('clientList');
+                clientListEl.innerHTML = '';
+                const searchTerm = filter.toLowerCase().trim();
+                const filteredClients = clients.filter(c => (c.name || '').toLowerCase().includes(searchTerm) || (c.address || '').toLowerCase().includes(searchTerm));
+
+                document.getElementById('noResults').classList.toggle('hidden', filteredClients.length > 0 || clients.length === 0);
+                if (clients.length === 0) document.getElementById('noResults').innerHTML = '<p class="text-gray-500 dark:text-gray-400">Aún no tienes clientes. ¡Agrega el primero!</p>';
+                else if (filteredClients.length === 0) document.getElementById('noResults').innerHTML = '<p class="text-gray-500 dark:text-gray-400">No se encontraron clientes con ese criterio.</p>';
+
+                filteredClients.forEach(client => {
+                    const sortedOrders = (client.orders || []).sort((a, b) => new Date(b.date) - new Date(a.date));
+                    let ordersHtml = sortedOrders.length > 0 ? sortedOrders.map(order => {
+                        const statusInfo = {
+                            pendiente: { bg: 'bg-yellow-100 dark:bg-yellow-900', text: 'text-yellow-800 dark:text-yellow-300', label: 'PENDIENTE' },
+                            debe: { bg: 'bg-red-100 dark:bg-red-900', text: 'text-red-800 dark:text-red-300', label: 'DEBE PAGO' },
+                            pagado: { bg: 'bg-green-100 dark:bg-green-900', text: 'text-green-800 dark:text-green-300', label: 'PAGADO' }
+                        };
+                        const currentStatus = statusInfo[order.status] || statusInfo.pendiente;
+                        return `<div class="${currentStatus.bg} bg-opacity-75 p-3 rounded-lg text-sm flex flex-wrap justify-between items-center gap-2">
+                            <div>
+                                <p class="font-semibold">${formatDate(order.date)} - ${order.iceQty} kg</p>
+                                <p class="${currentStatus.text} font-bold">${formatCurrency(order.total)} - <span class="font-normal">${currentStatus.label}</span></p>
+                                ${order.paymentMethod ? `<p class="text-xs text-gray-500 dark:text-gray-400">Método: ${order.paymentMethod}</p>` : ''}
+                                ${order.notes ? `<p class="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">Nota: ${order.notes}</p>` : ''}
+                            </div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                ${order.status === 'pendiente' ? `<button onclick="window.openPaymentModal('${client.docId}', '${order.id}')" class="bg-green-500 text-white text-xs font-bold py-1 px-3 rounded-full hover:bg-green-600">Registrar Pago</button>` : ''}
+                                ${order.status === 'debe' ? `<button onclick="window.markAsPaid('${client.docId}', '${order.id}')" class="bg-blue-500 text-white text-xs font-bold py-1 px-3 rounded-full hover:bg-blue-600">Marcar Pagado</button>` : ''}
+                                <button onclick="window.deleteOrder('${client.docId}', '${order.id}')" class="text-gray-400 hover:text-red-600 p-1" title="Eliminar Pedido"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                            </div>
+                        </div>`;
+                    }).join('') : '<p class="text-sm text-gray-500 dark:text-gray-400">No hay pedidos para este cliente.</p>';
+
+                    const completedOrders = (client.orders || []).filter(o => o.status !== 'pendiente');
+                    const totalSales = completedOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+                    const lastOrderDate = completedOrders.length > 0 ? formatDate(completedOrders.sort((a,b) => new Date(b.date) - new Date(a.date))[0].date) : 'N/A';
+                    
+                    const clientCard = document.createElement('div');
+                    clientCard.id = `client-${client.docId}`;
+                    clientCard.className = "bg-white dark:bg-gray-800 rounded-lg shadow-md p-5 border border-gray-200 dark:border-gray-700";
+                    clientCard.innerHTML = `
+                        <div class="flex flex-col md:flex-row justify-between items-start">
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-900 dark:text-white">${client.name || 'Sin Nombre'}</h3>
+                                <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(client.address || '')}" target="_blank" class="flex items-center gap-2 mt-2 text-gray-600 dark:text-gray-300 hover:text-blue-600"><svg class="w-5 h-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"/></svg><span>${client.address || 'Sin dirección'}</span></a>
+                                <a href="https://wa.me/56${(client.phone || '').replace(/\D/g, '')}" target="_blank" class="flex items-center gap-2 mt-1 text-gray-600 dark:text-gray-300 hover:text-green-600"><svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm3.7 10.3a.8.8 0 01-1.1.1L11 11.4a.8.8 0 01-.3-1.1l.9-1.6a.8.8 0 011.1.3l-1 1.7.8.5a.8.8 0 01.1 1.1zM8 9a1 1 0 11-2 0 1 1 0 012 0z"/></svg><span>${client.phone ? `+56 ${client.phone}` : 'Sin teléfono'}</span></a>
+                            </div>
+                            <div class="flex space-x-2 self-end md:self-auto mt-4 md:mt-0">
+                                <button onclick="window.editClient('${client.docId}')" class="p-2 text-gray-500 hover:text-blue-600 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700" title="Editar cliente"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L16.732 3.732z" /></svg></button>
+                                <button onclick="window.deleteClient('${client.docId}', '${escapeHTML(client.name || '')}')" class="p-2 text-gray-500 hover:text-red-600 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700" title="Eliminar cliente"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                            </div>
+                        </div>
+                        <div class="grid md:grid-cols-3 gap-6 mt-4 pt-4 border-t dark:border-gray-700">
+                             <div class="md:col-span-1">
+                                 <details><summary class="font-semibold text-gray-700 dark:text-gray-300 hover:text-blue-700">Calendario de Pedidos</summary><div id="calendar-${client.docId}" class="mt-2"></div></details>
+                            </div>
+                            <div class="md:col-span-2">
+                                <div class="grid grid-cols-2 gap-4 text-sm">
+                                    <div><p class="text-gray-500 dark:text-gray-400">Venta Histórica</p><p class="font-bold text-lg text-blue-700 dark:text-blue-400">${formatCurrency(totalSales)}</p></div>
+                                    <div><p class="text-gray-500 dark:text-gray-400">Total Pedidos</p><p class="font-bold text-lg">${completedOrders.length}</p></div>
+                                    <div class="col-span-2"><p class="text-gray-500 dark:text-gray-400">Último Pedido</p><p class="font-bold text-lg">${lastOrderDate}</p></div>
+                                </div>
+                                <details class="mt-4"><summary class="font-semibold text-blue-700">Gestionar Pedidos</summary>
+                                <div class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                    <form class="add-order-form" data-client-id="${client.docId}"><h4 class="font-bold mb-2">Crear Pedido</h4>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-2">
+                                            <div><label class="text-sm font-medium">Cantidad (kg)</label><input type="number" name="iceQty" required min="0" step="any" class="w-full p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500 mt-1" placeholder="Ej: 20"></div>
+                                            <div><label class="text-sm font-medium">Fecha del Pedido</label><input type="date" name="orderDate" required class="w-full p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500 mt-1"></div>
+                                        </div>
+                                        <div class="mb-4"><label class="text-sm font-medium">Notas (opcional)</label><input type="text" name="orderNotes" class="w-full p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500 mt-1" placeholder="Ej: Entregar por la tarde"></div>
+                                        <button type="submit" class="w-full bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-600">Crear Pedido</button>
+                                    </form>
+                                    <hr class="my-4 dark:border-gray-600"><h4 class="font-bold mb-2">Historial de Pedidos</h4>
+                                    <div class="space-y-3">${ordersHtml}</div>
+                                </div>
+                                </details>
+                            </div>
+                        </div>`;
+                    clientListEl.appendChild(clientCard);
+                    const today = new Date();
+                    window.renderCalendar(client.docId, today.getFullYear(), today.getMonth());
+                    clientCard.querySelector('.add-order-form input[name="orderDate"]').valueAsDate = new Date();
+                });
+            };
+
+            //--- DATA & ACTION FUNCTIONS ---
+            window.showConfirm = (message, onConfirm) => { document.getElementById('confirmMessage').textContent = message; openModal(modals.confirmModal); confirmCallback = onConfirm; };
+            window.editClient = (docId) => { const client = clients.find(c => c.docId === docId); if (client) { document.getElementById('modalTitle').textContent = 'Editar Cliente'; Object.keys(client).forEach(key => { const el = document.getElementById(key); if(el) el.value = client[key]; }); document.getElementById('clientId').value = docId; openModal(modals.clientModal); } };
+            window.deleteClient = (docId, name) => showConfirm(`¿Seguro que quieres eliminar a ${name}? Se borrarán todos sus pedidos.`, async () => { await deleteDoc(doc(clientsCollectionRef, docId)); showToast(`Cliente ${name} eliminado`, 'error'); });
+            window.deleteExpense = (docId, desc) => showConfirm(`¿Seguro que quieres eliminar el gasto "${desc}"?`, async () => { await deleteDoc(doc(expensesCollectionRef, docId)); showToast('Gasto eliminado', 'error'); });
+            window.deleteOrder = (clientDocId, orderId) => showConfirm('¿Seguro que quieres eliminar este pedido?', async () => { const client = clients.find(c => c.docId === clientDocId); if (client) { const updatedOrders = (client.orders || []).filter(o => o.id !== orderId); await updateDoc(doc(clientsCollectionRef, clientDocId), { orders: updatedOrders }); showToast('Pedido eliminado', 'error'); } });
+            window.openPaymentModal = (clientDocId, orderId) => { const client = clients.find(c => c.docId === clientDocId); const order = client?.orders.find(o => o.id === orderId); if (client && order) { document.getElementById('paymentClientId').value = clientDocId; document.getElementById('paymentOrderId').value = orderId; document.getElementById('paymentClientName').textContent = client.name; document.getElementById('paymentTotalAmount').textContent = formatCurrency(order.total); openModal(modals.paymentModal); } };
+            window.markAsPaid = (clientDocId, orderId) => showConfirm('¿Confirmas que este pedido ha sido pagado?', async () => { const client = clients.find(c => c.docId === clientDocId); if(client) { const orderIndex = (client.orders || []).findIndex(o => o.id === orderId); if (orderIndex > -1) { const updatedOrders = [...client.orders]; updatedOrders[orderIndex].status = 'pagado'; if (!updatedOrders[orderIndex].paymentMethod) { updatedOrders[orderIndex].paymentMethod = 'transferencia'; } await updateDoc(doc(clientsCollectionRef, clientDocId), { orders: updatedOrders }); showToast('Pedido marcado como pagado'); } } });
+            window.showOrderDetails = (clientId, dateStr) => { const client = clients.find(c => c.docId === clientId); const targetDate = new Date(dateStr + 'T12:00:00'); if (!client) return; const ordersOnDay = (client.orders || []).filter(o => new Date(o.date).toDateString() === targetDate.toDateString()); document.getElementById('orderDetailsTitle').textContent = `Pedidos del ${formatDate(targetDate)}`; document.getElementById('orderDetailsBody').innerHTML = ordersOnDay.map(order => `<div class="p-3 rounded-md bg-gray-100 dark:bg-gray-700"><p><strong>Cantidad:</strong> ${order.iceQty} kg</p><p><strong>Total:</strong> ${formatCurrency(order.total)}</p><p><strong>Estado:</strong> ${order.status}</p>${order.notes ? `<p class="mt-1 text-sm italic"><strong>Nota:</strong> ${order.notes}</p>`:''}</div>`).join('') || '<p>No hay detalles para este día.</p>'; openModal(modals.orderDetailsModal); };
+            window.setSaleQuantity = (qty) => { document.getElementById('saleQuantity').value = qty; document.getElementById('saleQuantity').dispatchEvent(new Event('input')); };
+
+            //--- INITIALIZATION LOGIC ---
+            const initializeAppLogic = (user) => {
+                if (userId) return; // Ensure this runs only once
+                userId = user.uid;
+                
+                clientsCollectionRef = collection(db, 'clients');
+                expensesCollectionRef = collection(db, 'expenses');
+                
+                setupDashboardDateFilters();
+                setupRealtimeListeners();
+                setupDOMEventListeners();
+            };
+
+            const setupRealtimeListeners = () => {
+                let initialClientsLoaded = false, initialExpensesLoaded = false;
+                const checkAllDataLoaded = () => { if (initialClientsLoaded && initialExpensesLoaded) document.getElementById('loadingOverlay').classList.add('hidden'); };
+
+                onSnapshot(query(clientsCollectionRef), (snapshot) => { clients = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() })); clients.sort((a, b) => (a.name || '').localeCompare(b.name || '')); renderAll(); initialClientsLoaded = true; checkAllDataLoaded(); }, (error) => console.error("Error al obtener clientes:", error));
+                onSnapshot(query(expensesCollectionRef), (snapshot) => { expenses = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() })); renderAll(); initialExpensesLoaded = true; checkAllDataLoaded(); }, (error) => console.error("Error al obtener gastos:", error));
+            };
+            
+            const setupDashboardDateFilters = () => {
+                const monthSelect = document.getElementById('dashboardMonth'), yearSelect = document.getElementById('dashboardYear');
+                const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+                const currentYear = new Date().getFullYear();
+                
+                monthNames.forEach((month, index) => { const option = document.createElement('option'); option.value = index; option.textContent = month; monthSelect.appendChild(option); });
+                for (let i = currentYear; i >= currentYear - 5; i--) { const option = document.createElement('option'); option.value = i; option.textContent = i; yearSelect.appendChild(option); }
+                monthSelect.value = dashboardDate.getMonth(); yearSelect.value = dashboardDate.getFullYear();
+
+                const updateDashboardDate = () => { dashboardDate = new Date(yearSelect.value, monthSelect.value, 1); renderDashboard(); };
+                monthSelect.addEventListener('change', updateDashboardDate);
+                yearSelect.addEventListener('change', updateDashboardDate);
+            };
+
+            const setupDOMEventListeners = () => {
+                Object.values(modals).forEach(modal => {
+                    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(modal); });
+                    const cancelBtn = modal.querySelector('.cancel-btn, .close-btn');
+                    if (cancelBtn) cancelBtn.addEventListener('click', () => closeModal(modal));
+                });
+    
+                document.getElementById('addClientBtn').addEventListener('click', () => { document.getElementById('clientForm').reset(); document.getElementById('clientId').value = ''; document.getElementById('modalTitle').textContent = 'Agregar Nuevo Cliente'; openModal(modals.clientModal); });
+                document.getElementById('addExpenseBtn').addEventListener('click', () => { document.getElementById('expenseForm').reset(); openModal(modals.expenseModal); });
+                document.getElementById('salesHelperBtn').addEventListener('click', () => { const saleInput = document.getElementById('saleQuantity'); saleInput.value = ''; saleInput.dispatchEvent(new Event('input')); openModal(modals.salesHelperModal); });
+                document.getElementById('settingsBtn').addEventListener('click', () => { document.getElementById('pricePerKilo').value = pricePerKilo; openModal(modals.settingsModal); });
+                document.getElementById('exportCsvBtn').addEventListener('click', () => { document.getElementById('exportStartDate').value = ''; document.getElementById('exportEndDate').value = ''; openModal(modals.exportModal); });
+                document.getElementById('confirmCancelBtn').addEventListener('click', () => closeModal(modals.confirmModal));
+                document.getElementById('confirmOkBtn').addEventListener('click', () => { if (confirmCallback) confirmCallback(); closeModal(modals.confirmModal); });
+                
+                document.getElementById('clientForm').addEventListener('submit', async (e) => { e.preventDefault(); const docId = document.getElementById('clientId').value; const clientData = { name: document.getElementById('name').value, address: document.getElementById('address').value, phone: document.getElementById('phone').value }; if (docId) { await updateDoc(doc(clientsCollectionRef, docId), clientData); showToast('Cliente actualizado'); } else { clientData.orders = []; await addDoc(clientsCollectionRef, clientData); showToast('Cliente agregado'); } closeModal(modals.clientModal); });
+                document.getElementById('expenseForm').addEventListener('submit', async (e) => { e.preventDefault(); const description = document.getElementById('expenseDescription').value; const amount = parseFloat(document.getElementById('expenseAmount').value); const category = document.getElementById('expenseCategory').value; if (description && !isNaN(amount) && amount > 0) { await addDoc(expensesCollectionRef, { description, amount, category, date: new Date().toISOString() }); closeModal(modals.expenseModal); showToast('Gasto registrado'); } });
+                document.getElementById('paymentForm').addEventListener('submit', async (e) => { e.preventDefault(); const clientDocId = document.getElementById('paymentClientId').value; const orderId = document.getElementById('paymentOrderId').value; const client = clients.find(c => c.docId === clientDocId); if (client) { const orderIndex = (client.orders || []).findIndex(o => o.id === orderId); if (orderIndex > -1) { const updatedOrders = [...client.orders]; updatedOrders[orderIndex].paymentMethod = document.getElementById('paymentMethod').value; updatedOrders[orderIndex].status = document.getElementById('paymentStatus').value; await updateDoc(doc(clientsCollectionRef, clientDocId), { orders: updatedOrders }); showToast('Pago registrado'); } } closeModal(modals.paymentModal); });
+                
+                document.getElementById('clientList').addEventListener('submit', (e) => { 
+                    if(e.target.classList.contains('add-order-form')) { 
+                        e.preventDefault(); 
+                        const form = e.target; const docId = form.dataset.clientId; const client = clients.find(c => c.docId === docId); const iceQty = parseFloat(form.elements.iceQty.value); const orderDate = new Date(form.elements.orderDate.value); const notes = form.elements.orderNotes.value; if (client && iceQty > 0) { orderDate.setHours(12); const newOrder = { id: String(Date.now()), date: orderDate.toISOString(), iceQty, total: iceQty * pricePerKilo, status: 'pendiente', paymentMethod: null, notes: notes || null }; const updatedOrders = [...(client.orders || []), newOrder]; updateDoc(doc(clientsCollectionRef, docId), { orders: updatedOrders }); form.reset(); form.elements.orderDate.valueAsDate = new Date(); showToast('Pedido creado'); }
+                    }
+                });
+
+                document.getElementById('saveSettingsBtn').addEventListener('click', () => { const newPrice = parseFloat(document.getElementById('pricePerKilo').value); if (!isNaN(newPrice) && newPrice > 0) { pricePerKilo = newPrice; localStorage.setItem('pricePerKilo', newPrice); closeModal(modals.settingsModal); showToast('Ajustes guardados'); renderAll(); } else { showToast('Precio inválido', 'error'); } });
+                document.getElementById('saleQuantity').addEventListener('input', (e) => { e.target.parentElement.nextElementSibling.querySelector('#saleTotal').textContent = formatCurrency((parseFloat(e.target.value) || 0) * pricePerKilo) });
+                
+                document.getElementById('confirmExportBtn').addEventListener('click', () => { const startDate = document.getElementById('exportStartDate').value; const endDate = document.getElementById('exportEndDate').value; const allOrders = []; clients.forEach(c => (c.orders || []).forEach(o => allOrders.push({ ...o, clientName: c.name || '', clientAddress: c.address || '', clientPhone: c.phone || '' }))); let filteredOrders = allOrders; if (startDate && endDate) { const start = new Date(startDate + "T00:00:00"); const end = new Date(endDate + "T23:59:59"); filteredOrders = allOrders.filter(o => { const orderDate = new Date(o.date); return orderDate >= start && orderDate <= end; }); } if (filteredOrders.length === 0) { showToast("No hay datos para exportar en ese rango.", 'error'); return; } const headers = ["ID Pedido", "Fecha Pedido", "Nombre Cliente", "Dirección", "Teléfono", "Cantidad (kg)", "Total Pedido ($)", "Método de Pago", "Estado Pago", "Notas"]; let csvContent = headers.join(",") + "\r\n"; filteredOrders.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(o => { const clean = (text) => `"${(text || '').replace(/"/g, '""')}"`; const row = [ o.id, new Date(o.date).toLocaleString('es-CL'), clean(o.clientName), clean(o.clientAddress), o.clientPhone || '', o.iceQty || 0, o.total || 0, o.paymentMethod || 'N/A', o.status, clean(o.notes) ]; csvContent += row.join(",") + "\r\n"; }); const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' }); const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `reporte_ventas_${new Date().toISOString().slice(0, 10)}.csv`; document.body.appendChild(link); link.click(); document.body.removeChild(link); closeModal(modals.exportModal); });
+
+                const themeToggleBtn = document.getElementById('themeToggleBtn'), sunIcon = document.getElementById('themeIconSun'), moonIcon = document.getElementById('themeIconMoon');
+                const updateThemeIcons = () => { if (document.documentElement.classList.contains('dark')) { sunIcon.classList.remove('hidden'); moonIcon.classList.add('hidden'); } else { sunIcon.classList.add('hidden'); moonIcon.classList.remove('hidden'); } };
+                themeToggleBtn.addEventListener('click', () => { const isDark = document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', isDark ? 'dark' : 'light'); updateThemeIcons(); });
+                updateThemeIcons();
+                
+                document.getElementById('searchInput').addEventListener('input', (e) => renderClients(e.target.value));
+            };
+            
+            //--- SCRIPT ENTRY POINT ---
+            const main = () => {
+                if (!firebaseConfig || !firebaseConfig.apiKey) {
+                    const loadingMsg = document.getElementById('loadingMessage');
+                    loadingMsg.innerHTML = '<span class="text-red-600 font-bold">Error: Configuración de Firebase no encontrada.</span><br>Por favor, sigue la guía para conectar tu base de datos manualmente.';
+                    loadingMsg.previousElementSibling.classList.add('hidden');
+                    return;
+                }
+                
+                try {
+                    const app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+                    pricePerKilo = parseFloat(localStorage.getItem('pricePerKilo')) || 400;
+
+                    onAuthStateChanged(auth, async (user) => {
+                        if (user) {
+                            if (!userId) { // Ensure initialization runs only once
+                                userId = user.uid;
+                                clientsCollectionRef = collection(db, 'clients');
+                                expensesCollectionRef = collection(db, 'expenses');
+                                
+                                setupDashboardDateFilters();
+                                setupRealtimeListeners();
+                                setupDOMEventListeners();
+                            }
+                        } else {
+                            await signInAnonymously(auth).catch(err => {
+                                console.error("Fallo el inicio de sesión anónimo:", err);
+                                document.getElementById('loadingMessage').textContent = 'Error de autenticación. Revisa las reglas de seguridad.';
+                            });
+                        }
+                    });
+
+                } catch (error) {
+                    console.error("Error al inicializar Firebase:", error);
+                    document.getElementById('loadingMessage').textContent = 'Error de conexión con la base de datos. Revisa la configuración.';
+                }
+            };
+
+            main();
+        });
+    </script>
+</body>
+</html>
+
