@@ -4,14 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestor de Clientes Pro</title>
+    
+    <!-- Meta tags for PWA -->
+    <meta name="theme-color" content="#1f2937"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Gestor Pro">
+    <link rel="apple-touch-icon" href="https://placehold.co/192x192/3b82f6/ffffff?text=GP">
+    <link rel="manifest" href="manifest.json">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf-autotable.min.js"></script>
     <script>
         // Aplica el modo oscuro al instante para evitar parpadeos
         if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
         } else {
             document.documentElement.classList.remove('dark');
+        }
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
         }
     </script>
     <style>
@@ -100,7 +121,7 @@
         </div>
 
         <!-- Controles: Búsqueda y Acciones -->
-        <div class="flex flex-wrap gap-4 mb-6 sticky top-4 bg-gray-100/80 dark:bg-gray-900/80 backdrop-blur-sm py-4 z-10 rounded-lg">
+        <div class="flex flex-wrap gap-4 mb-6 sticky top-0 bg-gray-100/80 dark:bg-gray-900/80 backdrop-blur-sm py-4 z-30 rounded-lg">
             <div class="relative flex-grow min-w-full md:min-w-0">
                 <input type="text" id="searchInput" placeholder="Buscar cliente por nombre o dirección..." class="w-full p-3 pl-10 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
                  <svg class="w-5 h-5 text-gray-400 absolute top-1/2 left-3 transform -translate-y-1/2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
@@ -111,7 +132,11 @@
                 <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6"></path></svg>
                 Gasto
             </button>
-            <button id="exportCsvBtn" class="bg-green-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-green-700 transition flex items-center justify-center gap-2"><svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>Exportar</button>
+            <button id="exportCsvBtn" class="bg-green-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-green-700 transition flex items-center justify-center gap-2"><svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>Exportar CSV</button>
+            <button id="exportPdfBtn" class="bg-red-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-red-800 transition flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m.75 12l3 3m0 0l3-3m-3 3v-6m-1.5-9H5.625a1.875 1.875 0 00-1.875 1.875v17.25a1.875 1.875 0 001.875 1.875h12.75a1.875 1.875 0 001.875-1.875V11.25a9 9 0 00-9-9z" /></svg>
+                Exportar PDF
+            </button>
             <button id="addClientBtn" class="bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 transition flex items-center justify-center gap-2"><svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>Cliente</button>
         </div>
 
@@ -125,7 +150,7 @@
     <div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="paymentModalContent" class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-md p-6 md:p-8"><form id="paymentForm"><h2 class="text-2xl font-bold mb-6">Registrar Pago del Pedido</h2><input type="hidden" id="paymentClientId"><input type="hidden" id="paymentOrderId"><div class="mb-4 bg-gray-100 dark:bg-gray-700 p-3 rounded-md"><p>Cliente: <strong id="paymentClientName"></strong></p><p>Total a Pagar: <strong id="paymentTotalAmount"></strong></p></div><div class="mb-4"><label for="paymentMethod" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Método de Pago</label><select id="paymentMethod" required class="w-full p-3 border rounded-md dark:bg-gray-700 dark:border-gray-600"><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option></select></div><div class="mb-4"><label for="paymentStatus" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Estado del Pago</label><select id="paymentStatus" required class="w-full p-3 border rounded-md dark:bg-gray-700 dark:border-gray-600"><option value="pagado">Pagado de inmediato</option><option value="debe">Nos debe (pagará después)</option></select></div><div class="mt-8 flex justify-end space-x-4"><button type="button" class="cancel-btn bg-gray-200 dark:bg-gray-600 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">Cancelar</button><button type="submit" class="bg-green-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-green-700">Confirmar</button></div></form></div></div>
     <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden"><div id="confirmModalContent" class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-sm p-6 text-center"><h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Confirmar Acción</h3><p id="confirmMessage" class="mt-2 text-sm text-gray-500 dark:text-gray-400"></p><div class="mt-6 flex justify-center gap-4"><button id="confirmCancelBtn" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">Cancelar</button><button id="confirmOkBtn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Confirmar</button></div></div></div>
     <div id="orderDetailsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="orderDetailsModalContent" class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-lg p-6 md:p-8"><h2 id="orderDetailsTitle" class="text-2xl font-bold mb-6 text-gray-800 dark:text-gray-100">Detalles del Pedido</h2><div id="orderDetailsBody" class="space-y-4"></div><div class="mt-8 flex justify-end"><button type="button" class="close-btn bg-gray-200 dark:bg-gray-600 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">Cerrar</button></div></div></div>
-    <div id="salesHelperModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="salesHelperModalContent" class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-sm p-6 md:p-8"><h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-gray-100">Ayuda de Venta</h2><div class="mb-4"><label for="saleQuantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cantidad (kg)</label><input type="number" id="saleQuantity" min="0" step="any" class="w-full p-3 border rounded-md text-center text-lg dark:bg-gray-700 dark:border-gray-600" placeholder="Ingresa cantidad..."></div><div class="flex justify-center gap-2 mb-6"><button onclick="window.setSaleQuantity(20)" class="bg-gray-200 dark:bg-gray-600 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">20 kg</button><button onclick="window.setSaleQuantity(30)" class="bg-gray-200 dark:bg-gray-600 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">30 kg</button><button onclick="window.setSaleQuantity(40)" class="bg-gray-200 dark:bg-gray-600 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">40 kg</button></div><div class="text-center bg-blue-50 dark:bg-gray-700 p-4 rounded-lg"><p class="text-gray-600 dark:text-gray-300">Total a Cobrar:</p><p id="saleTotal" class="text-3xl font-bold text-blue-700 dark:text-blue-400">$0</p></div><div class="mt-8 flex justify-end"><button type="button" class="close-btn bg-gray-500 text-white font-semibold py-2 px-6 rounded-lg hover:bg-gray-600">Cerrar</button></div></div></div>
+    <div id="salesHelperModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="salesHelperModalContent" class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-sm p-6 md:p-8"><h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-gray-100">Ayuda de Venta</h2><div class="mb-4"><label for="saleQuantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cantidad (kg)</label><input type="number" id="saleQuantity" min="0" step="5" class="w-full p-3 border rounded-md text-center text-lg dark:bg-gray-700 dark:border-gray-600" placeholder="Ingresa cantidad..."></div><div class="flex justify-center gap-2 mb-6"><button onclick="window.setSaleQuantity(20)" class="bg-gray-200 dark:bg-gray-600 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">20 kg</button><button onclick="window.setSaleQuantity(30)" class="bg-gray-200 dark:bg-gray-600 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">30 kg</button><button onclick="window.setSaleQuantity(40)" class="bg-gray-200 dark:bg-gray-600 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">40 kg</button></div><div class="text-center bg-blue-50 dark:bg-gray-700 p-4 rounded-lg"><p class="text-gray-600 dark:text-gray-300">Total a Cobrar:</p><p id="saleTotal" class="text-3xl font-bold text-blue-700 dark:text-blue-400">$0</p></div><div class="mt-8 flex justify-end"><button type="button" class="close-btn bg-gray-500 text-white font-semibold py-2 px-6 rounded-lg hover:bg-gray-600">Cerrar</button></div></div></div>
     <div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="settingsModalContent" class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-md p-6 md:p-8"><h2 class="text-2xl font-bold mb-6">Ajustes Generales</h2><div class="mb-4"><label for="pricePerKilo" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Precio por Kilo ($)</label><input type="number" id="pricePerKilo" min="0" class="w-full p-3 border rounded-md dark:bg-gray-700 dark:border-gray-600"></div><div class="mt-8 flex justify-end space-x-4"><button type="button" class="cancel-btn bg-gray-200 dark:bg-gray-600 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">Cancelar</button><button id="saveSettingsBtn" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-blue-700">Guardar Ajustes</button></div></div></div>
     <div id="exportModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="exportModalContent" class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-md p-6 md:p-8"><h2 class="text-2xl font-bold mb-6">Exportar Reporte de Ventas</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div class="mb-4"><label for="exportStartDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha de Inicio</label><input type="date" id="exportStartDate" class="w-full p-3 border rounded-md dark:bg-gray-700 dark:border-gray-600"></div><div class="mb-4"><label for="exportEndDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha de Fin</label><input type="date" id="exportEndDate" class="w-full p-3 border rounded-md dark:bg-gray-700 dark:border-gray-600"></div></div><p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Deja las fechas en blanco para exportar todos los datos.</p><div class="mt-8 flex justify-end space-x-4"><button type="button" class="cancel-btn bg-gray-200 dark:bg-gray-600 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">Cancelar</button><button id="confirmExportBtn" class="bg-green-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-green-700">Exportar CSV</button></div></div></div>
 
@@ -141,7 +166,7 @@
             projectId: "clientes-8fcad",
             storageBucket: "clientes-8fcad.firebasestorage.app",
             messagingSenderId: "954626529421",
-            appId: "1:954626529421:web:a228a2f2eb79d6bd4e2ac4"
+            appId: "1:9542626529421:web:a228a2f2eb79d6bd4e2ac4"
         };
 
         // All logic inside DOMContentLoaded to ensure elements are available.
@@ -345,10 +370,7 @@
             window.setSaleQuantity = (qty) => { document.getElementById('saleQuantity').value = qty; document.getElementById('saleQuantity').dispatchEvent(new Event('input')); };
 
             //--- INITIALIZATION LOGIC ---
-            const initializeAppLogic = (user) => {
-                if (userId) return; // Ensure this runs only once
-                userId = user.uid;
-                
+            const initializeAppLogic = () => {
                 clientsCollectionRef = collection(db, 'clients');
                 expensesCollectionRef = collection(db, 'expenses');
                 
@@ -391,6 +413,7 @@
                 document.getElementById('salesHelperBtn').addEventListener('click', () => { const saleInput = document.getElementById('saleQuantity'); saleInput.value = ''; saleInput.dispatchEvent(new Event('input')); openModal(modals.salesHelperModal); });
                 document.getElementById('settingsBtn').addEventListener('click', () => { document.getElementById('pricePerKilo').value = pricePerKilo; openModal(modals.settingsModal); });
                 document.getElementById('exportCsvBtn').addEventListener('click', () => { document.getElementById('exportStartDate').value = ''; document.getElementById('exportEndDate').value = ''; openModal(modals.exportModal); });
+                document.getElementById('exportPdfBtn').addEventListener('click', exportAllDataToPdf);
                 document.getElementById('confirmCancelBtn').addEventListener('click', () => closeModal(modals.confirmModal));
                 document.getElementById('confirmOkBtn').addEventListener('click', () => { if (confirmCallback) confirmCallback(); closeModal(modals.confirmModal); });
                 
@@ -406,7 +429,13 @@
                 });
 
                 document.getElementById('saveSettingsBtn').addEventListener('click', () => { const newPrice = parseFloat(document.getElementById('pricePerKilo').value); if (!isNaN(newPrice) && newPrice > 0) { pricePerKilo = newPrice; localStorage.setItem('pricePerKilo', newPrice); closeModal(modals.settingsModal); showToast('Ajustes guardados'); renderAll(); } else { showToast('Precio inválido', 'error'); } });
-                document.getElementById('saleQuantity').addEventListener('input', (e) => { e.target.parentElement.nextElementSibling.querySelector('#saleTotal').textContent = formatCurrency((parseFloat(e.target.value) || 0) * pricePerKilo) });
+                
+                document.getElementById('saleQuantity').addEventListener('input', (e) => {
+                    const saleTotalEl = document.getElementById('saleTotal');
+                    if (saleTotalEl) {
+                        saleTotalEl.textContent = formatCurrency((parseFloat(e.target.value) || 0) * pricePerKilo);
+                    }
+                });
                 
                 document.getElementById('confirmExportBtn').addEventListener('click', () => { const startDate = document.getElementById('exportStartDate').value; const endDate = document.getElementById('exportEndDate').value; const allOrders = []; clients.forEach(c => (c.orders || []).forEach(o => allOrders.push({ ...o, clientName: c.name || '', clientAddress: c.address || '', clientPhone: c.phone || '' }))); let filteredOrders = allOrders; if (startDate && endDate) { const start = new Date(startDate + "T00:00:00"); const end = new Date(endDate + "T23:59:59"); filteredOrders = allOrders.filter(o => { const orderDate = new Date(o.date); return orderDate >= start && orderDate <= end; }); } if (filteredOrders.length === 0) { showToast("No hay datos para exportar en ese rango.", 'error'); return; } const headers = ["ID Pedido", "Fecha Pedido", "Nombre Cliente", "Dirección", "Teléfono", "Cantidad (kg)", "Total Pedido ($)", "Método de Pago", "Estado Pago", "Notas"]; let csvContent = headers.join(",") + "\r\n"; filteredOrders.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(o => { const clean = (text) => `"${(text || '').replace(/"/g, '""')}"`; const row = [ o.id, new Date(o.date).toLocaleString('es-CL'), clean(o.clientName), clean(o.clientAddress), o.clientPhone || '', o.iceQty || 0, o.total || 0, o.paymentMethod || 'N/A', o.status, clean(o.notes) ]; csvContent += row.join(",") + "\r\n"; }); const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' }); const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `reporte_ventas_${new Date().toISOString().slice(0, 10)}.csv`; document.body.appendChild(link); link.click(); document.body.removeChild(link); closeModal(modals.exportModal); });
 
@@ -418,6 +447,55 @@
                 document.getElementById('searchInput').addEventListener('input', (e) => renderClients(e.target.value));
             };
             
+            const exportAllDataToPdf = () => {
+                const { jsPDF } = window.jspdf;
+                if (!clients || clients.length === 0) {
+                    showToast("No hay datos para exportar.", "error");
+                    return;
+                }
+
+                const doc = new jsPDF();
+                
+                const allOrders = [];
+                clients.forEach(client => {
+                    (client.orders || []).forEach(order => {
+                        allOrders.push({ ...order, clientName: client.name || '' });
+                    });
+                });
+                allOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                const tableColumn = ["Fecha", "Cliente", "Cant (kg)", "Total", "Estado"];
+                const tableRows = [];
+
+                allOrders.forEach(order => {
+                    const orderData = [
+                        formatDate(order.date),
+                        order.clientName,
+                        order.iceQty || 0,
+                        formatCurrency(order.total || 0),
+                        order.status || 'N/A'
+                    ];
+                    tableRows.push(orderData);
+                });
+
+                doc.text("Reporte de Ventas Completo", 14, 15);
+                
+                doc.autoTable({
+                    head: [tableColumn],
+                    body: tableRows,
+                    startY: 20,
+                    didDrawPage: function (data) {
+                        // Footer
+                        const pageCount = doc.internal.getNumberOfPages();
+                        doc.setFontSize(10);
+                        doc.text(`Página ${data.pageNumber} de ${pageCount}`, data.settings.margin.left, doc.internal.pageSize.height - 10);
+                    }
+                });
+                
+                doc.save(`reporte_ventas_${new Date().toISOString().slice(0, 10)}.pdf`);
+                showToast("Reporte PDF generado exitosamente.");
+            };
+
             //--- SCRIPT ENTRY POINT ---
             const main = () => {
                 if (!firebaseConfig || !firebaseConfig.apiKey) {
@@ -435,14 +513,9 @@
 
                     onAuthStateChanged(auth, async (user) => {
                         if (user) {
-                            if (!userId) { // Ensure initialization runs only once
+                             if (!userId) { // Ensure initialization runs only once
                                 userId = user.uid;
-                                clientsCollectionRef = collection(db, 'clients');
-                                expensesCollectionRef = collection(db, 'expenses');
-                                
-                                setupDashboardDateFilters();
-                                setupRealtimeListeners();
-                                setupDOMEventListeners();
+                                initializeAppLogic();
                             }
                         } else {
                             await signInAnonymously(auth).catch(err => {
