@@ -87,7 +87,11 @@
                 </button>
                 <button id="exportCsvBtn" class="bg-green-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-green-700 transition flex items-center justify-center gap-2">
                     <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                    Exportar Todo
+                    Exportar
+                </button>
+                 <button id="sendSummaryBtn" class="bg-teal-500 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-teal-600 transition flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zM14.23 13.09c-.26.13-.59.21-.82.21-.22 0-.44-.04-.66-.13-.79-.34-1.63-.9-2.3-1.55-.67-.65-1.2-1.47-1.55-2.26-.29-.68-.15-1.45.38-2.02l.1-.11c.25-.26.6-.4.97-.4.18 0 .36.05.52.14l.8.44c.48.26.74.83.56 1.37l-.37 1.1a.5.5 0 00.15.53l1.1 1.1c.14.14.34.22.53.15l1.1-.37c.54-.18 1.1.08 1.37.56l.44.8c.09.16.14.34.14.52 0 .37-.14.72-.4.97l-.11.1z"/></svg>
+                    Enviar Resumen
                 </button>
                 <button id="addClientBtn" class="bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 transition flex items-center justify-center gap-2">
                     <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
@@ -106,13 +110,17 @@
              <svg class="w-6 h-6 mb-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-6-6h12" /></svg>
             <span class="text-xs">Gasto</span>
         </button>
-         <button id="mobileExportBtn" class="flex flex-col items-center justify-center text-gray-600 flex-1 p-2 rounded-lg hover:bg-gray-100">
-            <svg class="w-6 h-6 mb-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
-            <span class="text-xs">Exportar</span>
+        <button id="mobileSendSummaryBtn" class="flex flex-col items-center justify-center text-gray-600 flex-1 p-2 rounded-lg hover:bg-gray-100">
+            <svg class="w-6 h-6 mb-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zM14.23 13.09c-.26.13-.59.21-.82.21-.22 0-.44-.04-.66-.13-.79-.34-1.63-.9-2.3-1.55-.67-.65-1.2-1.47-1.55-2.26-.29-.68-.15-1.45.38-2.02l.1-.11c.25-.26.6-.4.97-.4.18 0 .36.05.52.14l.8.44c.48.26.74.83.56 1.37l-.37 1.1a.5.5 0 00.15.53l1.1 1.1c.14.14.34.22.53.15l1.1-.37c.54-.18 1.1.08 1.37.56l.44.8c.09.16.14.34.14.52 0 .37-.14.72-.4.97l-.11.1z"/></svg>
+            <span class="text-xs">Resumen</span>
         </button>
         <button id="mobileAddClientBtn" class="flex flex-col items-center justify-center text-blue-600 flex-1 p-2 rounded-lg hover:bg-blue-100">
             <svg class="w-6 h-6 mb-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.5 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
             <span class="text-xs font-semibold">Cliente</span>
+        </button>
+         <button id="mobileExportBtn" class="flex flex-col items-center justify-center text-gray-600 flex-1 p-2 rounded-lg hover:bg-gray-100">
+            <svg class="w-6 h-6 mb-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+            <span class="text-xs">Exportar</span>
         </button>
     </div>
 
@@ -123,6 +131,7 @@
     <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden"><div id="confirmModalContent" class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center"><h3 class="text-lg font-medium text-gray-900">Confirmar Acción</h3><p id="confirmMessage" class="mt-2 text-sm text-gray-500"></p><div class="mt-6 flex justify-center gap-4"><button id="confirmCancelBtn" class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300">Cancelar</button><button id="confirmOkBtn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Eliminar</button></div></div></div>
     <div id="orderDetailsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="orderDetailsModalContent" class="bg-white rounded-lg shadow-2xl w-full max-w-lg p-6 md:p-8"><h2 id="orderDetailsTitle" class="text-2xl font-bold mb-6 text-gray-800">Detalles del Pedido</h2><div id="orderDetailsBody" class="space-y-4"></div><div class="mt-8 flex justify-end"><button type="button" id="closeOrderDetailsBtn" class="bg-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300">Cerrar</button></div></div></div>
     <div id="exportModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="exportModalContent" class="bg-white rounded-lg shadow-2xl w-full max-w-md p-6 md:p-8"><h2 class="text-2xl font-bold mb-6">Exportar Reporte de Ventas</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div class="mb-4"><label for="exportStartDate" class="block text-sm font-medium text-gray-700 mb-1">Fecha de Inicio</label><input type="date" id="exportStartDate" class="w-full p-3 border rounded-md"></div><div class="mb-4"><label for="exportEndDate" class="block text-sm font-medium text-gray-700 mb-1">Fecha de Fin</label><input type="date" id="exportEndDate" class="w-full p-3 border rounded-md"></div></div><p class="text-xs text-gray-500 mt-2">Deja las fechas en blanco para exportar todos los datos.</p><div class="mt-8 flex justify-end space-x-4"><button type="button" id="cancelExportBtn" class="bg-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300">Cancelar</button><button id="confirmExportBtn" class="bg-green-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-green-700">Exportar CSV</button></div></div></div>
+    <div id="whatsappModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden"><div id="whatsappModalContent" class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center"><h3 class="text-lg font-medium text-gray-900">Enviar Resumen por WhatsApp</h3><p class="mt-2 text-sm text-gray-500">Selecciona un contacto para enviar el resumen de pendientes.</p><div class="mt-6 flex flex-col gap-4"><button id="sendToMarcos" class="w-full px-4 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 font-semibold">Enviar a Marcos</button><button id="sendToGery" class="w-full px-4 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 font-semibold">Enviar a Gery</button><button id="cancelWhatsAppBtn" class="w-full mt-2 px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300">Cancelar</button></div></div></div>
 
 
     <script type="module">
@@ -428,6 +437,8 @@
             const confirmModal = document.getElementById('confirmModal');
             const orderDetailsModal = document.getElementById('orderDetailsModal');
             const exportModal = document.getElementById('exportModal');
+            const whatsappModal = document.getElementById('whatsappModal');
+
 
             const openModal = (modal) => { modal.classList.remove('hidden'); modal.querySelector('div[id$="Content"]').classList.add('modal-enter'); };
             const closeModal = (modal) => { const content = modal.querySelector('div[id$="Content"]'); content.classList.remove('modal-enter'); content.classList.add('modal-leave'); setTimeout(() => { modal.classList.add('hidden'); content.classList.remove('modal-leave'); }, 300); };
@@ -574,6 +585,45 @@
             document.getElementById('mobileAddClientBtn').addEventListener('click', () => document.getElementById('addClientBtn').click());
             document.getElementById('mobileAddExpenseBtn').addEventListener('click', () => document.getElementById('addExpenseBtn').click());
             document.getElementById('mobileExportBtn').addEventListener('click', () => document.getElementById('exportCsvBtn').click());
+            document.getElementById('mobileSendSummaryBtn').addEventListener('click', () => openModal(whatsappModal));
+            document.getElementById('sendSummaryBtn').addEventListener('click', () => openModal(whatsappModal));
+
+
+            const sendWhatsAppSummary = (phoneNumber) => {
+                const today = new Date().toLocaleDateString('es-CL');
+                let message = `*Resumen de Pendientes - ${today}*\n\n`;
+
+                const pendingDeliveries = clients.flatMap(c => (c.orders || []).map(o => ({...o, clientName: c.name }))).filter(o => o.status === 'pendiente').sort((a,b) => new Date(a.date) - new Date(b.date));
+                message += "*Pedidos por Entregar:*\n";
+                if (pendingDeliveries.length > 0) {
+                    pendingDeliveries.forEach(order => {
+                        message += `- ${order.clientName}: ${order.iceQty} kg (${formatCurrency(order.total)})\n`;
+                    });
+                } else {
+                    message += "_No hay pedidos pendientes._\n";
+                }
+
+                message += "\n";
+
+                const debtors = clients.flatMap(c => (c.orders || []).map(o => ({...o, clientName: c.name }))).filter(o => o.status === 'debe').sort((a,b) => new Date(a.date) - new Date(b.date));
+                message += "*Clientes que Deben:*\n";
+                if (debtors.length > 0) {
+                    debtors.forEach(debt => {
+                        message += `- ${debt.clientName}: ${formatCurrency(debt.total)}\n`;
+                    });
+                } else {
+                    message += "_No hay deudas pendientes._\n";
+                }
+
+                const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+                window.open(whatsappUrl, '_blank');
+                closeModal(whatsappModal);
+            };
+
+            document.getElementById('sendToMarcos').addEventListener('click', () => sendWhatsAppSummary('56958635985'));
+            document.getElementById('sendToGery').addEventListener('click', () => sendWhatsAppSummary('56932264057'));
+            document.getElementById('cancelWhatsAppBtn').addEventListener('click', () => closeModal(whatsappModal));
+
 
             document.getElementById('searchInput').addEventListener('input', (e) => renderClients(e.target.value));
         });
