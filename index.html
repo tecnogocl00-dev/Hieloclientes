@@ -16,7 +16,8 @@
         .modal-leave { animation: modal-out 0.3s ease-in forwards; }
         @keyframes modal-in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         @keyframes modal-out { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.95); } }
-        details > summary { cursor: pointer; }
+        details > summary { cursor: pointer; list-style: none; }
+        details > summary::-webkit-details-marker { display: none; }
         .calendar-day-marked {
             background-color: #bfdbfe; /* blue-200 */
             color: #1e40af; /* blue-800 */
@@ -29,7 +30,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800">
+<body class="bg-gray-100 text-gray-800 pb-20 md:pb-0">
 
     <div id="loadingOverlay" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center text-center p-4">
         <svg class="animate-spin h-10 w-10 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -73,22 +74,40 @@
                 <input type="text" id="searchInput" placeholder="Buscar cliente..." class="w-full p-3 pl-10 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500">
                  <svg class="w-5 h-5 text-gray-400 absolute top-1/2 left-3 transform -translate-y-1/2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             </div>
-            <button id="addExpenseBtn" class="bg-red-500 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-red-600 transition flex items-center justify-center gap-2">
-                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6" /></svg>
-                Agregar Gasto
-            </button>
-            <button id="exportCsvBtn" class="bg-green-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-green-700 transition flex items-center justify-center gap-2">
-                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                Exportar Todo
-            </button>
-            <button id="addClientBtn" class="bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 transition flex items-center justify-center gap-2">
-                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-                Agregar Cliente
-            </button>
+            <div id="desktop-actions" class="hidden md:flex flex-wrap gap-4">
+                <button id="addExpenseBtn" class="bg-red-500 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-red-600 transition flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6" /></svg>
+                    Agregar Gasto
+                </button>
+                <button id="exportCsvBtn" class="bg-green-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-green-700 transition flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    Exportar Todo
+                </button>
+                <button id="addClientBtn" class="bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                    Agregar Cliente
+                </button>
+            </div>
         </div>
 
         <div id="clientList" class="space-y-4"></div>
         <div id="noResults" class="hidden text-center py-10"><p class="text-gray-500">No se encontraron clientes.</p></div>
+    </div>
+    
+    <!-- Barra de Acciones Móvil-->
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-t-lg z-40 flex justify-around items-center p-1 md:hidden">
+        <button id="mobileAddExpenseBtn" class="flex flex-col items-center justify-center text-gray-600 flex-1 p-2 rounded-lg hover:bg-gray-100">
+             <svg class="w-6 h-6 mb-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-6-6h12" /></svg>
+            <span class="text-xs">Gasto</span>
+        </button>
+         <button id="mobileExportBtn" class="flex flex-col items-center justify-center text-gray-600 flex-1 p-2 rounded-lg hover:bg-gray-100">
+            <svg class="w-6 h-6 mb-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+            <span class="text-xs">Exportar</span>
+        </button>
+        <button id="mobileAddClientBtn" class="flex flex-col items-center justify-center text-blue-600 flex-1 p-2 rounded-lg hover:bg-blue-100">
+            <svg class="w-6 h-6 mb-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.5 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
+            <span class="text-xs font-semibold">Cliente</span>
+        </button>
     </div>
 
     <!-- Modals -->
@@ -206,7 +225,7 @@
                 const totalMonthlyExpenses = monthlyExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
                 
                 const netProfit = monthlySales - totalMonthlyExpenses;
-
+                
                 document.getElementById('salesToday').textContent = formatCurrency(todaySales);
                 document.getElementById('salesMonth').textContent = formatCurrency(monthlySales);
                 document.getElementById('totalExpenses').textContent = formatCurrency(totalMonthlyExpenses);
