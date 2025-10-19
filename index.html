@@ -505,6 +505,11 @@
                 });
             };
             
+            // Event listeners for mobile buttons
+            document.getElementById('mobileAddClientBtn').addEventListener('click', () => document.getElementById('addClientBtn').click());
+            document.getElementById('mobileAddExpenseBtn').addEventListener('click', () => document.getElementById('addExpenseBtn').click());
+            document.getElementById('mobileExportBtn').addEventListener('click', () => document.getElementById('exportCsvBtn').click());
+
             document.getElementById('searchInput').addEventListener('input', (e) => renderClients(e.target.value));
         });
     </script>
