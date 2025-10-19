@@ -46,7 +46,13 @@
         <!-- Dashboard de Resumen -->
          <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
             <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200 lg:col-span-1">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Resumen Financiero</h3>
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">Resumen Financiero</h3>
+                    <div class="flex gap-2">
+                        <select id="dashboardMonth" class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-1"></select>
+                        <select id="dashboardYear" class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-1"></select>
+                    </div>
+                </div>
                 <div class="space-y-2 text-sm text-gray-600">
                     <p class="flex justify-between pb-2 mb-2 border-b"><span>Venta del Día:</span> <strong id="salesToday" class="text-green-600 font-bold text-base">$0</strong></p>
                     <p class="flex justify-between"><span>Ventas del Mes:</span> <strong id="salesMonth" class="text-green-600">$0</strong></p>
@@ -116,6 +122,7 @@
     <div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="paymentModalContent" class="bg-white rounded-lg shadow-2xl w-full max-w-md p-6 md:p-8"><form id="paymentForm"><h2 class="text-2xl font-bold mb-6">Registrar Pago del Pedido</h2><input type="hidden" id="paymentClientId"><input type="hidden" id="paymentOrderId"><div class="mb-4 bg-gray-100 p-3 rounded-md"><p>Cliente: <strong id="paymentClientName"></strong></p><p>Total a Pagar: <strong id="paymentTotalAmount"></strong></p></div><div class="mb-4"><label for="paymentMethod" class="block text-sm font-medium text-gray-700 mb-1">Método de Pago</label><select id="paymentMethod" required class="w-full p-3 border rounded-md"><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option></select></div><div class="mb-4"><label for="paymentStatus" class="block text-sm font-medium text-gray-700 mb-1">Estado del Pago</label><select id="paymentStatus" required class="w-full p-3 border rounded-md"><option value="pagado">Pagado de inmediato</option><option value="debe">Nos debe (pagará después)</option></select></div><div class="mt-8 flex justify-end space-x-4"><button type="button" id="cancelPaymentBtn" class="bg-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300">Cancelar</button><button type="submit" class="bg-green-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-green-700">Confirmar</button></div></form></div></div>
     <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden"><div id="confirmModalContent" class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center"><h3 class="text-lg font-medium text-gray-900">Confirmar Acción</h3><p id="confirmMessage" class="mt-2 text-sm text-gray-500"></p><div class="mt-6 flex justify-center gap-4"><button id="confirmCancelBtn" class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300">Cancelar</button><button id="confirmOkBtn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Eliminar</button></div></div></div>
     <div id="orderDetailsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="orderDetailsModalContent" class="bg-white rounded-lg shadow-2xl w-full max-w-lg p-6 md:p-8"><h2 id="orderDetailsTitle" class="text-2xl font-bold mb-6 text-gray-800">Detalles del Pedido</h2><div id="orderDetailsBody" class="space-y-4"></div><div class="mt-8 flex justify-end"><button type="button" id="closeOrderDetailsBtn" class="bg-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300">Cerrar</button></div></div></div>
+    <div id="exportModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="exportModalContent" class="bg-white rounded-lg shadow-2xl w-full max-w-md p-6 md:p-8"><h2 class="text-2xl font-bold mb-6">Exportar Reporte de Ventas</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div class="mb-4"><label for="exportStartDate" class="block text-sm font-medium text-gray-700 mb-1">Fecha de Inicio</label><input type="date" id="exportStartDate" class="w-full p-3 border rounded-md"></div><div class="mb-4"><label for="exportEndDate" class="block text-sm font-medium text-gray-700 mb-1">Fecha de Fin</label><input type="date" id="exportEndDate" class="w-full p-3 border rounded-md"></div></div><p class="text-xs text-gray-500 mt-2">Deja las fechas en blanco para exportar todos los datos.</p><div class="mt-8 flex justify-end space-x-4"><button type="button" id="cancelExportBtn" class="bg-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300">Cancelar</button><button id="confirmExportBtn" class="bg-green-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-green-700">Exportar CSV</button></div></div></div>
 
 
     <script type="module">
@@ -142,6 +149,8 @@
             let clients = [];
             let expenses = [];
             let db, auth, userId, clientsCollectionRef, expensesCollectionRef;
+            let dashboardDate = new Date();
+
 
             if (!firebaseConfig || !firebaseConfig.apiKey) {
                 const loadingMsg = document.getElementById('loadingMessage');
@@ -167,6 +176,7 @@
                     clientsCollectionRef = collection(db, `clients`);
                     expensesCollectionRef = collection(db, `expenses`);
                     setupRealtimeListeners();
+                    setupDashboardDateFilters();
                 } else {
                     await signInAnonymously(auth).catch(err => {
                         console.error("Fallo el inicio de sesión anónimo:", err);
@@ -208,20 +218,52 @@
             
             const renderAll = () => { renderDashboard(); renderClients(document.getElementById('searchInput').value); };
             
+            const setupDashboardDateFilters = () => {
+                const monthSelect = document.getElementById('dashboardMonth');
+                const yearSelect = document.getElementById('dashboardYear');
+                const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+                const currentYear = new Date().getFullYear();
+                
+                monthNames.forEach((month, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = month;
+                    monthSelect.appendChild(option);
+                });
+
+                for (let i = currentYear; i >= currentYear - 5; i--) {
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.textContent = i;
+                    yearSelect.appendChild(option);
+                }
+
+                monthSelect.value = dashboardDate.getMonth();
+                yearSelect.value = dashboardDate.getFullYear();
+
+                const updateDashboardDate = () => {
+                    dashboardDate = new Date(yearSelect.value, monthSelect.value, 1);
+                    renderDashboard();
+                };
+
+                monthSelect.addEventListener('change', updateDashboardDate);
+                yearSelect.addEventListener('change', updateDashboardDate);
+            };
+
             const renderDashboard = () => {
                 const now = new Date();
                 const isToday = d => d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-                const isThisMonth = d => d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                const isSelectedMonth = d => d.getMonth() === dashboardDate.getMonth() && d.getFullYear() === dashboardDate.getFullYear();
                 
                 const allCompletedOrders = clients.flatMap(c => c.orders || []).filter(o => o.status !== 'pendiente');
                 
                 const todayOrders = allCompletedOrders.filter(o => isToday(new Date(o.date)));
                 const todaySales = todayOrders.reduce((sum, order) => sum + (order.total || 0), 0);
 
-                const monthlyOrders = allCompletedOrders.filter(o => isThisMonth(new Date(o.date)));
+                const monthlyOrders = allCompletedOrders.filter(o => isSelectedMonth(new Date(o.date)));
                 const monthlySales = monthlyOrders.reduce((sum, order) => sum + (order.total || 0), 0);
                 
-                const monthlyExpenses = expenses.filter(e => isThisMonth(new Date(e.date)));
+                const monthlyExpenses = expenses.filter(e => isSelectedMonth(new Date(e.date)));
                 const totalMonthlyExpenses = monthlyExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
                 
                 const netProfit = monthlySales - totalMonthlyExpenses;
@@ -385,6 +427,7 @@
             const paymentModal = document.getElementById('paymentModal');
             const confirmModal = document.getElementById('confirmModal');
             const orderDetailsModal = document.getElementById('orderDetailsModal');
+            const exportModal = document.getElementById('exportModal');
 
             const openModal = (modal) => { modal.classList.remove('hidden'); modal.querySelector('div[id$="Content"]').classList.add('modal-enter'); };
             const closeModal = (modal) => { const content = modal.querySelector('div[id$="Content"]'); content.classList.remove('modal-enter'); content.classList.add('modal-leave'); setTimeout(() => { modal.classList.add('hidden'); content.classList.remove('modal-leave'); }, 300); };
@@ -445,7 +488,15 @@
             document.getElementById('confirmCancelBtn').addEventListener('click', () => closeModal(confirmModal));
             document.getElementById('confirmOkBtn').addEventListener('click', () => { closeModal(confirmModal); if (confirmCallback) confirmCallback(); });
 
-            document.getElementById('exportCsvBtn').addEventListener('click', () => exportAllDataToCsv());
+            document.getElementById('exportCsvBtn').addEventListener('click', () => openModal(exportModal));
+            document.getElementById('cancelExportBtn').addEventListener('click', () => closeModal(exportModal));
+            exportModal.addEventListener('click', (e) => e.target === exportModal && closeModal(exportModal));
+            document.getElementById('confirmExportBtn').addEventListener('click', () => {
+                const startDate = document.getElementById('exportStartDate').value;
+                const endDate = document.getElementById('exportEndDate').value;
+                exportAllDataToCsv(startDate, endDate);
+                closeModal(exportModal);
+            });
 
             window.showOrderDetails = (clientId, dateStr) => {
                 const client = clients.find(c => c.docId === clientId);
@@ -472,14 +523,28 @@
                 document.body.removeChild(link);
             };
 
-            const exportAllDataToCsv = () => {
-                if (clients.length === 0) { alert("No hay datos para exportar."); return; }
-                const headers = ["ID Pedido", "Fecha Pedido", "Nombre Cliente", "Dirección", "Teléfono", "Cantidad (kg)", "Total Pedido ($)", "Método de Pago", "Estado Pago"];
-                let csvContent = headers.join(",") + "\r\n";
+            const exportAllDataToCsv = (startDateStr, endDateStr) => {
                 const allOrders = [];
                 clients.forEach(client => { (client.orders || []).forEach(order => { allOrders.push({ ...order, clientName: client.name || '', clientAddress: client.address || '', clientPhone: client.phone || '' }); }); });
-                allOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
-                allOrders.forEach(order => { const clean = (text) => `"${(text || '').replace(/"/g, '""')}"`; const row = [ order.id, new Date(order.date).toLocaleString('es-CL'), clean(order.clientName), clean(order.clientAddress), order.clientPhone || '', order.iceQty || 0, order.total || 0, order.paymentMethod || 'N/A', order.status ]; csvContent += row.join(",") + "\r\n"; });
+                
+                let filteredOrders = allOrders;
+                if(startDateStr && endDateStr) {
+                    const start = new Date(startDateStr);
+                    const end = new Date(endDateStr);
+                    filteredOrders = allOrders.filter(order => {
+                        const orderDate = new Date(order.date);
+                        return orderDate >= start && orderDate <= end;
+                    });
+                }
+                
+                if (filteredOrders.length === 0) { alert("No hay datos para exportar en el rango de fechas seleccionado."); return; }
+
+                const headers = ["ID Pedido", "Fecha Pedido", "Nombre Cliente", "Dirección", "Teléfono", "Cantidad (kg)", "Total Pedido ($)", "Método de Pago", "Estado Pago"];
+                let csvContent = headers.join(",") + "\r\n";
+                
+                filteredOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
+                filteredOrders.forEach(order => { const clean = (text) => `"${(text || '').replace(/"/g, '""')}"`; const row = [ order.id, new Date(order.date).toLocaleString('es-CL'), clean(order.clientName), clean(order.clientAddress), order.clientPhone || '', order.iceQty || 0, order.total || 0, order.paymentMethod || 'N/A', order.status ]; csvContent += row.join(",") + "\r\n"; });
+                
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement("a");
                 link.setAttribute("href", URL.createObjectURL(blob));
