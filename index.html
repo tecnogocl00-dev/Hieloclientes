@@ -16,8 +16,7 @@
         .modal-leave { animation: modal-out 0.3s ease-in forwards; }
         @keyframes modal-in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         @keyframes modal-out { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.95); } }
-        details > summary { cursor: pointer; list-style: none; }
-        details > summary::-webkit-details-marker { display: none; }
+        details > summary { cursor: pointer; }
         .calendar-day-marked {
             background-color: #bfdbfe; /* blue-200 */
             color: #1e40af; /* blue-800 */
@@ -30,7 +29,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800 pb-20 md:pb-0">
+<body class="bg-gray-100 text-gray-800">
 
     <div id="loadingOverlay" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center text-center p-4">
         <svg class="animate-spin h-10 w-10 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -74,44 +73,26 @@
                 <input type="text" id="searchInput" placeholder="Buscar cliente..." class="w-full p-3 pl-10 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500">
                  <svg class="w-5 h-5 text-gray-400 absolute top-1/2 left-3 transform -translate-y-1/2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             </div>
-            <div id="desktop-actions" class="hidden md:flex flex-wrap gap-4">
-                <button id="addExpenseBtn" class="bg-red-500 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-red-600 transition flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6" /></svg>
-                    Agregar Gasto
-                </button>
-                <button id="exportCsvBtn" class="bg-green-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-green-700 transition flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                    Exportar Todo
-                </button>
-                <button id="addClientBtn" class="bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 transition flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-                    Agregar Cliente
-                </button>
-            </div>
+            <button id="addExpenseBtn" class="bg-red-500 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-red-600 transition flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6" /></svg>
+                Agregar Gasto
+            </button>
+            <button id="exportCsvBtn" class="bg-green-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-green-700 transition flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Exportar Todo
+            </button>
+            <button id="addClientBtn" class="bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                Agregar Cliente
+            </button>
         </div>
 
         <div id="clientList" class="space-y-4"></div>
         <div id="noResults" class="hidden text-center py-10"><p class="text-gray-500">No se encontraron clientes.</p></div>
     </div>
-    
-    <!-- Barra de Acciones Móvil-->
-    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-t-lg z-40 flex justify-around items-center p-1 md:hidden">
-        <button id="mobileAddExpenseBtn" class="flex flex-col items-center justify-center text-gray-600 flex-1 p-2 rounded-lg hover:bg-gray-100">
-             <svg class="w-6 h-6 mb-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-6-6h12" /></svg>
-            <span class="text-xs">Gasto</span>
-        </button>
-         <button id="mobileExportBtn" class="flex flex-col items-center justify-center text-gray-600 flex-1 p-2 rounded-lg hover:bg-gray-100">
-            <svg class="w-6 h-6 mb-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
-            <span class="text-xs">Exportar</span>
-        </button>
-        <button id="mobileAddClientBtn" class="flex flex-col items-center justify-center text-blue-600 flex-1 p-2 rounded-lg hover:bg-blue-100">
-            <svg class="w-6 h-6 mb-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.5 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
-            <span class="text-xs font-semibold">Cliente</span>
-        </button>
-    </div>
 
     <!-- Modals -->
-    <div id="clientModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="clientModalContent" class="bg-white rounded-lg shadow-2xl w-full max-w-md p-6 md:p-8"><form id="clientForm"><h2 id="modalTitle" class="text-2xl font-bold mb-6"></h2><input type="hidden" id="clientId"><div class="mb-4"><label for="surname" class="block text-sm font-medium text-gray-700 mb-1">Apellido</label><input type="text" id="surname" class="w-full p-3 border rounded-md"></div><div class="mb-4"><label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nombre</label><input type="text" id="name" class="w-full p-3 border rounded-md"></div><div class="mb-4"><label for="address" class="block text-sm font-medium text-gray-700 mb-1">Dirección</label><input type="text" id="address" class="w-full p-3 border rounded-md"></div><div class="mb-4"><label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Teléfono (WhatsApp)</label><div class="flex items-center border rounded-md"><span class="px-3 text-gray-500 bg-gray-100">+56</span><input type="tel" id="phone" placeholder="912345678" class="w-full p-3 border-l-0 rounded-r-md"></div></div><div class="mt-8 flex justify-end space-x-4"><button type="button" id="cancelClientBtn" class="bg-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300">Cancelar</button><button type="submit" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-blue-700">Guardar</button></div></form></div></div>
+    <div id="clientModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="clientModalContent" class="bg-white rounded-lg shadow-2xl w-full max-w-md p-6 md:p-8"><form id="clientForm"><h2 id="modalTitle" class="text-2xl font-bold mb-6"></h2><input type="hidden" id="clientId"><div class="mb-4"><label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label><input type="text" id="name" class="w-full p-3 border rounded-md"></div><div class="mb-4"><label for="address" class="block text-sm font-medium text-gray-700 mb-1">Dirección</label><input type="text" id="address" class="w-full p-3 border rounded-md"></div><div class="mb-4"><label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Teléfono (WhatsApp)</label><div class="flex items-center border rounded-md"><span class="px-3 text-gray-500 bg-gray-100">+56</span><input type="tel" id="phone" placeholder="912345678" class="w-full p-3 border-l-0 rounded-r-md"></div></div><div class="mt-8 flex justify-end space-x-4"><button type="button" id="cancelClientBtn" class="bg-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300">Cancelar</button><button type="submit" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-blue-700">Guardar</button></div></form></div></div>
     <div id="expenseModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="expenseModalContent" class="bg-white rounded-lg shadow-2xl w-full max-w-md p-6 md:p-8"><form id="expenseForm"><h2 class="text-2xl font-bold mb-6">Registrar Nuevo Gasto</h2><div class="mb-4"><label for="expenseDescription" class="block text-sm font-medium text-gray-700 mb-1">Descripción</label><input type="text" id="expenseDescription" class="w-full p-3 border rounded-md" placeholder="Ej: Combustible, bolsas, etc." required></div><div class="mb-4"><label for="expenseAmount" class="block text-sm font-medium text-gray-700 mb-1">Monto ($)</label><input type="number" id="expenseAmount" min="0" step="1" class="w-full p-3 border rounded-md" placeholder="Ej: 15000" required></div><div class="mt-8 flex justify-end space-x-4"><button type="button" id="cancelExpenseBtn" class="bg-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300">Cancelar</button><button type="submit" class="bg-red-500 text-white font-semibold py-2 px-6 rounded-lg hover:bg-red-600">Guardar Gasto</button></div></form></div></div>
     <div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div id="paymentModalContent" class="bg-white rounded-lg shadow-2xl w-full max-w-md p-6 md:p-8"><form id="paymentForm"><h2 class="text-2xl font-bold mb-6">Registrar Pago del Pedido</h2><input type="hidden" id="paymentClientId"><input type="hidden" id="paymentOrderId"><div class="mb-4 bg-gray-100 p-3 rounded-md"><p>Cliente: <strong id="paymentClientName"></strong></p><p>Total a Pagar: <strong id="paymentTotalAmount"></strong></p></div><div class="mb-4"><label for="paymentMethod" class="block text-sm font-medium text-gray-700 mb-1">Método de Pago</label><select id="paymentMethod" required class="w-full p-3 border rounded-md"><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option></select></div><div class="mb-4"><label for="paymentStatus" class="block text-sm font-medium text-gray-700 mb-1">Estado del Pago</label><select id="paymentStatus" required class="w-full p-3 border rounded-md"><option value="pagado">Pagado de inmediato</option><option value="debe">Nos debe (pagará después)</option></select></div><div class="mt-8 flex justify-end space-x-4"><button type="button" id="cancelPaymentBtn" class="bg-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300">Cancelar</button><button type="submit" class="bg-green-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-green-700">Confirmar</button></div></form></div></div>
     <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden"><div id="confirmModalContent" class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center"><h3 class="text-lg font-medium text-gray-900">Confirmar Acción</h3><p id="confirmMessage" class="mt-2 text-sm text-gray-500"></p><div class="mt-6 flex justify-center gap-4"><button id="confirmCancelBtn" class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300">Cancelar</button><button id="confirmOkBtn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Eliminar</button></div></div></div>
@@ -188,7 +169,7 @@
                 const clientsQuery = query(clientsCollectionRef);
                 onSnapshot(clientsQuery, (snapshot) => {
                     clients = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-                    clients.sort((a, b) => (a.surname || '').localeCompare(b.surname || ''));
+                    clients.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
                     renderAll();
                     initialClientsLoaded = true;
                     checkAllDataLoaded();
@@ -225,7 +206,7 @@
                 const totalMonthlyExpenses = monthlyExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
                 
                 const netProfit = monthlySales - totalMonthlyExpenses;
-                
+
                 document.getElementById('salesToday').textContent = formatCurrency(todaySales);
                 document.getElementById('salesMonth').textContent = formatCurrency(monthlySales);
                 document.getElementById('totalExpenses').textContent = formatCurrency(totalMonthlyExpenses);
@@ -237,7 +218,7 @@
                         orders.map(order => `<div class="text-sm flex justify-between items-center ${itemClass} p-2 rounded-md"><div><p class="font-semibold">${order.clientName}</p><p class="text-gray-600">${formatDate(order.date)} - <span class="font-bold">${formatCurrency(order.total)}</span></p></div><a href="#client-${order.clientDocId}" class="text-blue-500 hover:underline">Ver</a></div>`).join('');
                 };
                 
-                const allOrders = clients.flatMap(c => (c.orders || []).map(o => ({...o, clientName: `${c.name} ${c.surname}`, clientDocId: c.docId })));
+                const allOrders = clients.flatMap(c => (c.orders || []).map(o => ({...o, clientName: c.name, clientDocId: c.docId })));
                 renderList('pendingDeliveryList', allOrders.filter(o => o.status === 'pendiente').sort((a,b) => new Date(a.date) - new Date(b.date)), 'No hay pedidos por entregar.', 'bg-yellow-50');
                 renderList('pendingDebtorsList', allOrders.filter(o => o.status === 'debe').sort((a,b) => new Date(a.date) - new Date(b.date)), 'No hay deudas pendientes.', 'bg-red-50');
                 
@@ -293,7 +274,7 @@
                 const clientListEl = document.getElementById('clientList');
                 clientListEl.innerHTML = '';
                 const searchTerm = filter.toLowerCase().trim();
-                const filteredClients = clients.filter(c => `${c.name || ''} ${c.surname || ''}`.toLowerCase().includes(searchTerm) || (c.address || '').toLowerCase().includes(searchTerm));
+                const filteredClients = clients.filter(c => (c.name || '').toLowerCase().includes(searchTerm) || (c.address || '').toLowerCase().includes(searchTerm));
 
                 document.getElementById('noResults').classList.toggle('hidden', filteredClients.length > 0 || clients.length === 0);
                 if (clients.length === 0) document.getElementById('noResults').innerHTML = '<p class="text-gray-500">Aún no tienes clientes. ¡Agrega el primero!</p>';
@@ -340,7 +321,7 @@
                         <div id="client-${client.docId}" class="bg-white rounded-lg shadow-md p-5 border border-gray-200">
                             <div class="flex flex-col md:flex-row justify-between items-start">
                                 <div>
-                                    <h3 class="text-xl font-bold text-gray-900">${client.surname || ''}, ${client.name || ''}</h3>
+                                    <h3 class="text-xl font-bold text-gray-900">${client.name || 'Sin Nombre'}</h3>
                                     <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(client.address || '')}" target="_blank" class="flex items-center gap-2 mt-2 text-gray-600 hover:text-blue-600"><svg class="w-5 h-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"/></svg><span>${client.address || 'Sin dirección'}</span></a>
                                     <a href="https://wa.me/56${(client.phone || '').replace(/\D/g, '')}" target="_blank" class="flex items-center gap-2 mt-1 text-gray-600 hover:text-green-600"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zM10 18a6 6 0 110-12 6 6 0 010 12zm0-10a1 1 0 00-1 1v3a1 1 0 002 0V9a1 1 0 00-1-1zm0 6a1 1 0 100 2 1 1 0 000-2z" /></svg><span>${client.phone ? `+56 ${client.phone}` : 'Sin teléfono'}</span></a>
                                 </div>
@@ -395,7 +376,7 @@
             document.getElementById('clientForm').addEventListener('submit', async (e) => { 
                 e.preventDefault(); 
                 const docId = document.getElementById('clientId').value; 
-                const clientData = { surname: document.getElementById('surname').value, name: document.getElementById('name').value, address: document.getElementById('address').value, phone: document.getElementById('phone').value }; 
+                const clientData = { name: document.getElementById('name').value, address: document.getElementById('address').value, phone: document.getElementById('phone').value }; 
                 if (docId) { 
                     const clientRef = doc(clientsCollectionRef, docId);
                     await updateDoc(clientRef, clientData);
@@ -466,7 +447,7 @@
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement("a");
                 link.setAttribute("href", URL.createObjectURL(blob));
-                link.setAttribute("download", `reporte_${(client.surname || 'cliente').replace(/\s/g, '_')}_${new Date().toISOString().slice(0, 10)}.csv`);
+                link.setAttribute("download", `reporte_${(client.name || 'cliente').replace(/\s/g, '_')}_${new Date().toISOString().slice(0, 10)}.csv`);
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -474,12 +455,12 @@
 
             const exportAllDataToCsv = () => {
                 if (clients.length === 0) { alert("No hay datos para exportar."); return; }
-                const headers = ["ID Pedido", "Fecha Pedido", "Apellido Cliente", "Nombre Cliente", "Dirección", "Teléfono", "Cantidad (kg)", "Total Pedido ($)", "Método de Pago", "Estado Pago"];
+                const headers = ["ID Pedido", "Fecha Pedido", "Nombre Cliente", "Dirección", "Teléfono", "Cantidad (kg)", "Total Pedido ($)", "Método de Pago", "Estado Pago"];
                 let csvContent = headers.join(",") + "\r\n";
                 const allOrders = [];
-                clients.forEach(client => { (client.orders || []).forEach(order => { allOrders.push({ ...order, clientSurname: client.surname || '', clientName: client.name || '', clientAddress: client.address || '', clientPhone: client.phone || '' }); }); });
+                clients.forEach(client => { (client.orders || []).forEach(order => { allOrders.push({ ...order, clientName: client.name || '', clientAddress: client.address || '', clientPhone: client.phone || '' }); }); });
                 allOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
-                allOrders.forEach(order => { const clean = (text) => `"${(text || '').replace(/"/g, '""')}"`; const row = [ order.id, new Date(order.date).toLocaleString('es-CL'), clean(order.clientSurname), clean(order.clientName), clean(order.clientAddress), order.clientPhone || '', order.iceQty || 0, order.total || 0, order.paymentMethod || 'N/A', order.status ]; csvContent += row.join(",") + "\r\n"; });
+                allOrders.forEach(order => { const clean = (text) => `"${(text || '').replace(/"/g, '""')}"`; const row = [ order.id, new Date(order.date).toLocaleString('es-CL'), clean(order.clientName), clean(order.clientAddress), order.clientPhone || '', order.iceQty || 0, order.total || 0, order.paymentMethod || 'N/A', order.status ]; csvContent += row.join(",") + "\r\n"; });
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement("a");
                 link.setAttribute("href", URL.createObjectURL(blob));
@@ -493,7 +474,7 @@
             window.deleteClient = (docId) => showConfirm('¿Seguro que quieres eliminar este cliente?', async () => { await deleteDoc(doc(clientsCollectionRef, docId)); });
             window.deleteExpense = (docId) => showConfirm('¿Seguro que quieres eliminar este gasto?', async () => { await deleteDoc(doc(expensesCollectionRef, docId)); });
             window.addOrder = async (event, docId) => { event.preventDefault(); const client = clients.find(c => c.docId === docId); const iceQty = parseFloat(event.target.elements.iceQty.value); if (client && iceQty > 0) { const newOrder = { id: String(Date.now()), date: new Date().toISOString(), iceQty, total: iceQty * PRICE_PER_KILO, status: 'pendiente', paymentMethod: null }; const updatedOrders = [...(client.orders || []), newOrder]; await updateDoc(doc(clientsCollectionRef, docId), { orders: updatedOrders }); event.target.reset(); } };
-            window.openPaymentModal = (clientDocId, orderId) => { const client = clients.find(c => c.docId === clientDocId); const order = client?.orders.find(o => o.id === orderId); if (client && order) { document.getElementById('paymentClientId').value = clientDocId; document.getElementById('paymentOrderId').value = orderId; document.getElementById('paymentClientName').textContent = `${client.name} ${client.surname}`; document.getElementById('paymentTotalAmount').textContent = formatCurrency(order.total); openModal(paymentModal); } };
+            window.openPaymentModal = (clientDocId, orderId) => { const client = clients.find(c => c.docId === clientDocId); const order = client?.orders.find(o => o.id === orderId); if (client && order) { document.getElementById('paymentClientId').value = clientDocId; document.getElementById('paymentOrderId').value = orderId; document.getElementById('paymentClientName').textContent = client.name; document.getElementById('paymentTotalAmount').textContent = formatCurrency(order.total); openModal(paymentModal); } };
             window.deleteOrder = (clientDocId, orderId) => {
                 showConfirm('¿Seguro que quieres eliminar este pedido?', async () => {
                     const client = clients.find(c => c.docId === clientDocId);
@@ -505,10 +486,6 @@
                 });
             };
             
-            document.getElementById('mobileAddClientBtn').addEventListener('click', () => document.getElementById('addClientBtn').click());
-            document.getElementById('mobileAddExpenseBtn').addEventListener('click', () => document.getElementById('addExpenseBtn').click());
-            document.getElementById('mobileExportBtn').addEventListener('click', () => document.getElementById('exportCsvBtn').click());
-
             document.getElementById('searchInput').addEventListener('input', (e) => renderClients(e.target.value));
         });
     </script>
