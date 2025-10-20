@@ -97,6 +97,29 @@
             </div>
         </div>
 
+        <!-- Banner de Pedido Rápido -->
+        <div id="quickOrderBanner" class="bg-white p-5 rounded-lg shadow-md border border-gray-200 mb-8">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Nuevo Pedido Rápido</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div class="md:col-span-1">
+                    <label for="quickOrderClient" class="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
+                    <select id="quickOrderClient" class="w-full p-3 border rounded-md bg-gray-50"></select>
+                </div>
+                <div class="md:col-span-1">
+                    <label for="quickOrderKilos" class="block text-sm font-medium text-gray-700 mb-1">Cantidad (kg)</label>
+                    <input type="number" id="quickOrderKilos" class="w-full p-3 border rounded-md" placeholder="Ej: 20" min="0">
+                </div>
+                <div class="md:col-span-1 flex flex-col">
+                     <div class="flex items-center justify-between text-sm mb-2 h-5">
+                        <span id="quickOrderTotal" class="font-semibold text-green-600"></span>
+                        <span id="quickOrderBoxes" class="text-gray-500"></span>
+                    </div>
+                    <button id="createQuickOrderBtn" class="bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 transition w-full">Crear Pedido</button>
+                </div>
+            </div>
+        </div>
+
+
         <!-- Controles: Búsqueda y Acciones -->
         <div class="flex flex-wrap gap-4 mb-6 sticky top-4 bg-gray-100/95 backdrop-blur-sm py-4 z-10">
             <div class="relative flex-grow min-w-full md:min-w-0">
@@ -255,7 +278,11 @@
                     renderAll();
                     initialClientsLoaded = true;
                     checkAllDataLoaded();
-                }, (error) => console.error("Error al obtener clientes:", error));
+                }, (error) => {
+                    console.error("Error al obtener clientes:", error);
+                    initialClientsLoaded = true; // Importante para no bloquear la carga
+                    checkAllDataLoaded();
+                });
 
                 const expensesQuery = query(expensesCollectionRef);
                 onSnapshot(expensesQuery, (snapshot) => {
@@ -263,13 +290,21 @@
                     renderAll();
                     initialExpensesLoaded = true;
                     checkAllDataLoaded();
-                }, (error) => console.error("Error al obtener gastos:", error));
+                }, (error) => {
+                    console.error("Error al obtener gastos:", error);
+                    initialExpensesLoaded = true; // Importante para no bloquear la carga
+                    checkAllDataLoaded();
+                });
             };
 
             const formatCurrency = (value) => (value || 0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP' });
             const formatDate = (dateString) => new Date(dateString).toLocaleDateString('es-CL', { year: 'numeric', month: 'short', day: 'numeric' });
             
-            const renderAll = () => { renderDashboard(); renderClients(document.getElementById('searchInput').value); };
+            const renderAll = () => { 
+                renderDashboard(); 
+                renderClients(document.getElementById('searchInput').value);
+                populateQuickOrderClientList();
+            };
             
             const setupDashboardDateFilters = () => {
                 const monthSelect = document.getElementById('dashboardMonth');
@@ -301,6 +336,23 @@
 
                 monthSelect.addEventListener('change', updateDashboardDate);
                 yearSelect.addEventListener('change', updateDashboardDate);
+            };
+
+            const populateQuickOrderClientList = () => {
+                const selectEl = document.getElementById('quickOrderClient');
+                // Guardar el valor seleccionado para restaurarlo después
+                const selectedValue = selectEl.value;
+                selectEl.innerHTML = '<option value="">Selecciona un cliente...</option>';
+                clients.forEach(client => {
+                    const option = document.createElement('option');
+                    option.value = client.docId;
+                    option.textContent = client.name;
+                    selectEl.appendChild(option);
+                });
+                 // Restaurar la selección si el cliente todavía existe
+                if (clients.find(c => c.docId === selectedValue)) {
+                    selectEl.value = selectedValue;
+                }
             };
 
             const renderDashboard = () => {
@@ -639,7 +691,19 @@
             window.editClient = (docId) => { const client = clients.find(c => c.docId === docId); if (client) { document.getElementById('modalTitle').textContent = 'Editar Cliente'; Object.keys(client).forEach(key => { const el = document.getElementById(key); if(el) el.value = client[key]; }); document.getElementById('clientId').value = docId; openModal(clientModal); } };
             window.deleteClient = (docId) => showConfirm('¿Seguro que quieres eliminar este cliente?', async () => { await deleteDoc(doc(clientsCollectionRef, docId)); });
             window.deleteExpense = (docId) => showConfirm('¿Seguro que quieres eliminar este gasto?', async () => { await deleteDoc(doc(expensesCollectionRef, docId)); });
-            window.addOrder = async (event, docId) => { event.preventDefault(); const client = clients.find(c => c.docId === docId); const iceQty = parseFloat(event.target.elements.iceQty.value); if (client && iceQty > 0) { const newOrder = { id: String(Date.now()), date: new Date().toISOString(), iceQty, total: iceQty * pricePerKilo, status: 'pendiente', paymentMethod: null }; const updatedOrders = [...(client.orders || []), newOrder]; await updateDoc(doc(clientsCollectionRef, docId), { orders: updatedOrders }); event.target.reset(); } };
+            
+            window.addOrder = async (event, docId, iceQtyFromParam = null) => {
+                if (event) event.preventDefault();
+                const client = clients.find(c => c.docId === docId);
+                const iceQty = iceQtyFromParam !== null ? iceQtyFromParam : parseFloat(event.target.elements.iceQty.value);
+                if (client && iceQty > 0) {
+                    const newOrder = { id: String(Date.now()), date: new Date().toISOString(), iceQty, total: iceQty * pricePerKilo, status: 'pendiente', paymentMethod: null };
+                    const updatedOrders = [...(client.orders || []), newOrder];
+                    await updateDoc(doc(clientsCollectionRef, docId), { orders: updatedOrders });
+                    if (event) event.target.reset();
+                }
+            };
+
             window.openPaymentModal = (clientDocId, orderId) => { const client = clients.find(c => c.docId === clientDocId); const order = client?.orders.find(o => o.id === orderId); if (client && order) { document.getElementById('paymentClientId').value = clientDocId; document.getElementById('paymentOrderId').value = orderId; document.getElementById('paymentClientName').textContent = client.name; document.getElementById('paymentTotalAmount').textContent = formatCurrency(order.total); openModal(paymentModal); } };
             window.deleteOrder = (clientDocId, orderId) => {
                 showConfirm('¿Seguro que quieres eliminar este pedido?', async () => {
@@ -670,6 +734,63 @@
                     displayEl.textContent = '';
                 }
             };
+
+            // Listener para el banner de pedido rápido
+            const quickOrderKilosInput = document.getElementById('quickOrderKilos');
+            const quickOrderTotalEl = document.getElementById('quickOrderTotal');
+            const quickOrderBoxesEl = document.getElementById('quickOrderBoxes');
+
+            quickOrderKilosInput.addEventListener('input', () => {
+                const kilos = parseFloat(quickOrderKilosInput.value);
+                if (kilos > 0) {
+                    quickOrderTotalEl.textContent = formatCurrency(kilos * pricePerKilo);
+                    const boxes = kilos / BOX_CAPACITY;
+                    quickOrderBoxesEl.textContent = `${boxes.toLocaleString('es-CL')} cajas`;
+                } else {
+                    quickOrderTotalEl.textContent = '';
+                    quickOrderBoxesEl.textContent = '';
+                }
+            });
+
+            document.getElementById('createQuickOrderBtn').addEventListener('click', async () => {
+                const clientId = document.getElementById('quickOrderClient').value;
+                const kilos = parseFloat(quickOrderKilosInput.value);
+                const client = clients.find(c => c.docId === clientId);
+
+                if (client && kilos > 0) {
+                    const btn = document.getElementById('createQuickOrderBtn');
+                    btn.disabled = true;
+                    btn.classList.add('opacity-50');
+
+                    await window.addOrder(null, clientId, kilos);
+                    
+                    // Limpiar y resetear
+                    document.getElementById('quickOrderClient').value = '';
+                    quickOrderKilosInput.value = '';
+                    quickOrderTotalEl.textContent = '';
+                    quickOrderBoxesEl.textContent = '';
+                    
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50');
+
+                    // Scroll para ver al cliente actualizado
+                    const clientCard = document.getElementById(`client-${clientId}`);
+                    if (clientCard) {
+                        clientCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        clientCard.classList.add('bg-blue-50', 'transition-colors', 'duration-1000');
+                        setTimeout(() => clientCard.classList.remove('bg-blue-50'), 1000);
+                    }
+
+                } else {
+                    if (!client) document.getElementById('quickOrderClient').classList.add('border-red-500', 'animate-shake');
+                    if (!kilos > 0) quickOrderKilosInput.classList.add('border-red-500', 'animate-shake');
+                    setTimeout(() => {
+                        document.getElementById('quickOrderClient').classList.remove('border-red-500', 'animate-shake');
+                        quickOrderKilosInput.classList.remove('border-red-500', 'animate-shake');
+                    }, 500);
+                }
+            });
+
 
             // Listener para el nuevo botón de actualizar precio
             document.getElementById('updatePriceBtn').addEventListener('click', async () => {
@@ -736,5 +857,4 @@
     </script>
 </body>
 </html>
-
 
