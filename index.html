@@ -28,6 +28,16 @@
         .calendar-day-marked:hover {
              background-color: #93c5fd; /* blue-300 */
         }
+        /* Animación para validación de input */
+        @keyframes shake {
+          10%, 90% { transform: translate3d(-1px, 0, 0); }
+          20%, 80% { transform: translate3d(2px, 0, 0); }
+          30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+          40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+        .animate-shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800 pb-20 md:pb-0">
@@ -58,6 +68,19 @@
                     <p class="flex justify-between"><span>Ventas del Mes:</span> <strong id="salesMonth" class="text-green-600">$0</strong></p>
                     <p class="flex justify-between"><span>Gastos del Mes:</span> <strong id="totalExpenses" class="text-red-600">$0</strong></p>
                     <p class="flex justify-between border-t pt-2 mt-2 text-base"><span>Utilidad Neta (Mes):</span> <strong id="netProfit" class="text-blue-700 font-bold">$0</strong></p>
+                    
+                    <!-- NUEVA SECCIÓN: PRECIO POR KILO -->
+                    <div class="border-t pt-3 mt-3">
+                        <label for="pricePerKilo" class="block text-sm font-medium text-gray-700 mb-1">Precio por Kilo ($)</label>
+                        <div class="flex items-center gap-2">
+                            <input type="number" id="pricePerKilo" class="w-full p-2 border rounded-md" min="0" placeholder="400">
+                            <button id="updatePriceBtn" class="bg-blue-500 text-white font-semibold p-2 rounded-lg hover:bg-blue-600 transition-colors" title="Actualizar Precio">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
              <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200 lg:col-span-1">
@@ -137,7 +160,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, query } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, query, setDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 
         // =================================================================
         // PEGA AQUÍ TU CONFIGURACIÓN DE FIREBASE (del Paso 3 de la guía)
@@ -154,10 +177,11 @@
 
 
         document.addEventListener('DOMContentLoaded', () => {
-            const PRICE_PER_KILO = 400;
+            const BOX_CAPACITY = 20;
+            let pricePerKilo = 400; // Valor por defecto
             let clients = [];
             let expenses = [];
-            let db, auth, userId, clientsCollectionRef, expensesCollectionRef;
+            let db, auth, userId, clientsCollectionRef, expensesCollectionRef, settingsDocRef;
             let dashboardDate = new Date();
 
 
@@ -181,9 +205,9 @@
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     userId = user.uid;
-                    // Simplificamos la ruta para que sea más robusta
                     clientsCollectionRef = collection(db, `clients`);
                     expensesCollectionRef = collection(db, `expenses`);
+                    settingsDocRef = doc(db, 'settings', 'config'); // Documento para guardar configuración
                     setupRealtimeListeners();
                     setupDashboardDateFilters();
                 } else {
@@ -197,12 +221,32 @@
             const setupRealtimeListeners = () => {
                 let initialClientsLoaded = false;
                 let initialExpensesLoaded = false;
+                let initialSettingsLoaded = false;
 
                 const checkAllDataLoaded = () => {
-                    if (initialClientsLoaded && initialExpensesLoaded) {
+                    if (initialClientsLoaded && initialExpensesLoaded && initialSettingsLoaded) {
                         document.getElementById('loadingOverlay').classList.add('hidden');
                     }
                 };
+
+                // Listener para la configuración (precio por kilo)
+                onSnapshot(settingsDocRef, async (docSnap) => {
+                    if (docSnap.exists()) {
+                        pricePerKilo = docSnap.data().pricePerKilo || 400;
+                    } else {
+                        pricePerKilo = 400; 
+                        await setDoc(settingsDocRef, { pricePerKilo: 400 }); // Crea el doc si no existe
+                    }
+                    document.getElementById('pricePerKilo').value = pricePerKilo;
+                    initialSettingsLoaded = true;
+                    checkAllDataLoaded();
+                }, (error) => {
+                    console.error("Error al obtener configuración:", error);
+                    pricePerKilo = 400; // Usa valor por defecto en caso de error
+                    document.getElementById('pricePerKilo').value = pricePerKilo;
+                    initialSettingsLoaded = true;
+                    checkAllDataLoaded();
+                });
 
                 const clientsQuery = query(clientsCollectionRef);
                 onSnapshot(clientsQuery, (snapshot) => {
@@ -363,6 +407,7 @@
                     } else {
                         ordersHtml += '<div class="space-y-3">';
                         sortedOrders.forEach(order => {
+                            const boxes = order.iceQty ? (order.iceQty / BOX_CAPACITY).toLocaleString('es-CL') : 0;
                             const statusInfo = {
                                 pendiente: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'PENDIENTE DE ENTREGA' },
                                 debe: { bg: 'bg-red-100', text: 'text-red-800', label: 'DEBE PAGO' },
@@ -373,7 +418,7 @@
                             ordersHtml += `
                                 <div class="${currentStatus.bg} p-3 rounded-lg text-sm flex flex-wrap justify-between items-center gap-2">
                                     <div>
-                                        <p class="font-semibold">${formatDate(order.date)} - ${order.iceQty} kg</p>
+                                        <p class="font-semibold">${formatDate(order.date)} - ${order.iceQty} kg <span class="text-gray-600 font-normal">(${boxes} cajas)</span></p>
                                         <p class="${currentStatus.text} font-bold">${formatCurrency(order.total)} - <span class="font-normal">${currentStatus.label}</span></p>
                                         ${order.paymentMethod ? `<p class="text-xs text-gray-500">Método: ${order.paymentMethod}</p>` : ''}
                                     </div>
@@ -418,7 +463,14 @@
                                     <details class="mt-4"><summary class="font-semibold text-blue-700">Gestionar Pedidos</summary>
                                     <div class="mt-4 p-4 bg-gray-50 rounded-lg">
                                         <h4 class="font-bold mb-2">Crear Pedido</h4>
-                                        <form onsubmit="addOrder(event, '${client.docId}')"><label class="text-sm font-medium">Cantidad (kg)</label><div class="flex items-center gap-4 mt-1"><input type="number" name="iceQty" required min="0" class="w-full p-3 border rounded-md" placeholder="Ej: 20"><button type="submit" class="bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg">Crear</button></div></form>
+                                        <form onsubmit="addOrder(event, '${client.docId}')">
+                                            <label class="text-sm font-medium">Cantidad (kg)</label>
+                                            <div class="flex items-center gap-4 mt-1">
+                                                <input type="number" name="iceQty" required min="0" class="w-full p-3 border rounded-md" placeholder="Ej: 20" oninput="updateBoxCount(this, '${client.docId}')">
+                                                <button type="submit" class="bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg">Crear</button>
+                                            </div>
+                                            <p id="boxCountDisplay-${client.docId}" class="text-xs text-gray-500 mt-1 h-4"></p>
+                                        </form>
                                         ${ordersHtml}
                                     </div>
                                     </details>
@@ -568,7 +620,7 @@
             window.editClient = (docId) => { const client = clients.find(c => c.docId === docId); if (client) { document.getElementById('modalTitle').textContent = 'Editar Cliente'; Object.keys(client).forEach(key => { const el = document.getElementById(key); if(el) el.value = client[key]; }); document.getElementById('clientId').value = docId; openModal(clientModal); } };
             window.deleteClient = (docId) => showConfirm('¿Seguro que quieres eliminar este cliente?', async () => { await deleteDoc(doc(clientsCollectionRef, docId)); });
             window.deleteExpense = (docId) => showConfirm('¿Seguro que quieres eliminar este gasto?', async () => { await deleteDoc(doc(expensesCollectionRef, docId)); });
-            window.addOrder = async (event, docId) => { event.preventDefault(); const client = clients.find(c => c.docId === docId); const iceQty = parseFloat(event.target.elements.iceQty.value); if (client && iceQty > 0) { const newOrder = { id: String(Date.now()), date: new Date().toISOString(), iceQty, total: iceQty * PRICE_PER_KILO, status: 'pendiente', paymentMethod: null }; const updatedOrders = [...(client.orders || []), newOrder]; await updateDoc(doc(clientsCollectionRef, docId), { orders: updatedOrders }); event.target.reset(); } };
+            window.addOrder = async (event, docId) => { event.preventDefault(); const client = clients.find(c => c.docId === docId); const iceQty = parseFloat(event.target.elements.iceQty.value); if (client && iceQty > 0) { const newOrder = { id: String(Date.now()), date: new Date().toISOString(), iceQty, total: iceQty * pricePerKilo, status: 'pendiente', paymentMethod: null }; const updatedOrders = [...(client.orders || []), newOrder]; await updateDoc(doc(clientsCollectionRef, docId), { orders: updatedOrders }); event.target.reset(); } };
             window.openPaymentModal = (clientDocId, orderId) => { const client = clients.find(c => c.docId === clientDocId); const order = client?.orders.find(o => o.id === orderId); if (client && order) { document.getElementById('paymentClientId').value = clientDocId; document.getElementById('paymentOrderId').value = orderId; document.getElementById('paymentClientName').textContent = client.name; document.getElementById('paymentTotalAmount').textContent = formatCurrency(order.total); openModal(paymentModal); } };
             window.deleteOrder = (clientDocId, orderId) => {
                 showConfirm('¿Seguro que quieres eliminar este pedido?', async () => {
@@ -588,6 +640,40 @@
             document.getElementById('mobileSendSummaryBtn').addEventListener('click', () => openModal(whatsappModal));
             document.getElementById('sendSummaryBtn').addEventListener('click', () => openModal(whatsappModal));
 
+            window.updateBoxCount = (input, clientId) => {
+                const displayEl = document.getElementById(`boxCountDisplay-${clientId}`);
+                if (!displayEl) return;
+                const iceQty = parseFloat(input.value);
+                if (iceQty > 0) {
+                    const boxes = iceQty / BOX_CAPACITY;
+                    displayEl.textContent = `Equivale a ${boxes.toLocaleString('es-CL')} cajas.`;
+                } else {
+                    displayEl.textContent = '';
+                }
+            };
+
+            // Listener para el nuevo botón de actualizar precio
+            document.getElementById('updatePriceBtn').addEventListener('click', async () => {
+                const input = document.getElementById('pricePerKilo');
+                const newPrice = parseFloat(input.value);
+                if (!isNaN(newPrice) && newPrice >= 0) {
+                    const btn = document.getElementById('updatePriceBtn');
+                    btn.disabled = true;
+                    btn.classList.add('opacity-50', 'cursor-not-allowed');
+                    try {
+                        await setDoc(settingsDocRef, { pricePerKilo: newPrice });
+                        // onSnapshot se encargará de actualizar el valor en la UI
+                    } catch (error) {
+                        console.error("Error al actualizar el precio:", error);
+                    } finally {
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
+                } else {
+                    input.classList.add('border-red-500', 'animate-shake');
+                    setTimeout(() => input.classList.remove('border-red-500', 'animate-shake'), 500);
+                }
+            });
 
             const sendWhatsAppSummary = (phoneNumber) => {
                 const today = new Date().toLocaleDateString('es-CL');
