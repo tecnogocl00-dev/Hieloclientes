@@ -326,15 +326,34 @@
                 document.getElementById('totalExpenses').textContent = formatCurrency(totalMonthlyExpenses);
                 document.getElementById('netProfit').textContent = formatCurrency(netProfit);
 
-                const renderList = (elementId, orders, emptyText, itemClass) => {
-                    const listEl = document.getElementById(elementId);
-                    listEl.innerHTML = orders.length === 0 ? `<p class="text-sm text-gray-500">${emptyText}</p>` :
-                        orders.map(order => `<div class="text-sm flex justify-between items-center ${itemClass} p-2 rounded-md"><div><p class="font-semibold">${order.clientName}</p><p class="text-gray-600">${formatDate(order.date)} - <span class="font-bold">${formatCurrency(order.total)}</span></p></div><a href="#client-${order.clientDocId}" class="text-blue-500 hover:underline">Ver</a></div>`).join('');
-                };
-                
                 const allOrders = clients.flatMap(c => (c.orders || []).map(o => ({...o, clientName: c.name, clientDocId: c.docId })));
-                renderList('pendingDeliveryList', allOrders.filter(o => o.status === 'pendiente').sort((a,b) => new Date(a.date) - new Date(b.date)), 'No hay pedidos por entregar.', 'bg-yellow-50');
-                renderList('pendingDebtorsList', allOrders.filter(o => o.status === 'debe').sort((a,b) => new Date(a.date) - new Date(b.date)), 'No hay deudas pendientes.', 'bg-red-50');
+                
+                // Render Pending Deliveries List
+                const pendingDeliveryListEl = document.getElementById('pendingDeliveryList');
+                const pendingDeliveries = allOrders.filter(o => o.status === 'pendiente').sort((a,b) => new Date(a.date) - new Date(b.date));
+                pendingDeliveryListEl.innerHTML = pendingDeliveries.length === 0 ? `<p class="text-sm text-gray-500">No hay pedidos por entregar.</p>` :
+                    pendingDeliveries.map(order => {
+                        const boxes = order.iceQty ? (order.iceQty / BOX_CAPACITY).toLocaleString('es-CL') : 0;
+                        return `<div class="text-sm flex justify-between items-center bg-yellow-50 p-2 rounded-md">
+                                    <div>
+                                        <p class="font-semibold">${order.clientName}</p>
+                                        <p class="text-gray-600">${order.iceQty} kg (${boxes} cajas) - ${formatCurrency(order.total)}</p>
+                                    </div>
+                                    <a href="#client-${order.clientDocId}" class="text-blue-500 hover:underline">Ver</a>
+                                </div>`;
+                    }).join('');
+
+                // Render Debtors List
+                const pendingDebtorsListEl = document.getElementById('pendingDebtorsList');
+                const pendingDebtors = allOrders.filter(o => o.status === 'debe').sort((a,b) => new Date(a.date) - new Date(b.date));
+                pendingDebtorsListEl.innerHTML = pendingDebtors.length === 0 ? `<p class="text-sm text-gray-500">No hay deudas pendientes.</p>` :
+                    pendingDebtors.map(order => `<div class="text-sm flex justify-between items-center bg-red-50 p-2 rounded-md">
+                                                    <div>
+                                                        <p class="font-semibold">${order.clientName}</p>
+                                                        <p class="text-gray-600">${formatDate(order.date)} - <span class="font-bold">${formatCurrency(order.total)}</span></p>
+                                                    </div>
+                                                    <a href="#client-${order.clientDocId}" class="text-blue-500 hover:underline">Ver</a>
+                                                </div>`).join('');
                 
                 const recentExpensesListEl = document.getElementById('recentExpensesList');
                 const recentExpenses = [...expenses].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
@@ -683,7 +702,8 @@
                 message += "*Pedidos por Entregar:*\n";
                 if (pendingDeliveries.length > 0) {
                     pendingDeliveries.forEach(order => {
-                        message += `- ${order.clientName}: ${order.iceQty} kg (${formatCurrency(order.total)})\n`;
+                        const boxes = order.iceQty ? (order.iceQty / BOX_CAPACITY).toLocaleString('es-CL') : 0;
+                        message += `- ${order.clientName}: ${order.iceQty} kg (${boxes} cajas) - ${formatCurrency(order.total)}\n`;
                     });
                 } else {
                     message += "_No hay pedidos pendientes._\n";
@@ -716,4 +736,5 @@
     </script>
 </body>
 </html>
+
 
