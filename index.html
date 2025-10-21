@@ -495,6 +495,7 @@
                                     </div>
                                     <div class="flex items-center gap-2">
                                         ${order.status === 'pendiente' ? `<button onclick="openPaymentModal('${client.docId}', '${order.id}')" class="bg-green-500 text-white text-xs font-bold py-1 px-3 rounded-full hover:bg-green-600">Registrar Pago</button>` : ''}
+                                        ${order.status === 'debe' ? `<button onclick="markAsPaid('${client.docId}', '${order.id}')" class="bg-green-500 text-white text-xs font-bold py-1 px-3 rounded-full hover:bg-green-600">Marcar Pagado</button>` : ''}
                                         <button onclick="deleteOrder('${client.docId}', '${order.id}')" class="text-gray-400 hover:text-red-600 p-1" title="Eliminar Pedido"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                                     </div>
                                 </div>
@@ -715,6 +716,24 @@
                     }
                 });
             };
+
+            // NUEVA FUNCIÓN PARA MARCAR COMO PAGADO
+            window.markAsPaid = (clientDocId, orderId) => {
+                showConfirm('¿Estás seguro de que quieres marcar esta deuda como pagada?', async () => {
+                    const client = clients.find(c => c.docId === clientDocId);
+                    if (client) {
+                        const orderIndex = (client.orders || []).findIndex(o => o.id === orderId);
+                        if (orderIndex > -1) {
+                            const updatedOrders = [...client.orders];
+                            updatedOrders[orderIndex].status = 'pagado';
+                            if (!updatedOrders[orderIndex].paymentMethod) {
+                                updatedOrders[orderIndex].paymentMethod = 'efectivo'; // Asigna un método por defecto si no lo tiene
+                            }
+                            await updateDoc(doc(clientsCollectionRef, clientDocId), { orders: updatedOrders });
+                        }
+                    }
+                });
+            };
             
             // Event listeners for mobile buttons
             document.getElementById('mobileAddClientBtn').addEventListener('click', () => document.getElementById('addClientBtn').click());
@@ -857,4 +876,5 @@
     </script>
 </body>
 </html>
+
 
