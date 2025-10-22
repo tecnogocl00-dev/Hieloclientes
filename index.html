@@ -28,6 +28,35 @@
         .calendar-day-marked:hover {
              background-color: #93c5fd; /* blue-300 */
         }
+        /* Estilos para el nuevo calendario de ventas */
+        .sales-calendar-day {
+            width: 2.5rem; /* 40px */
+            height: 2.5rem; /* 40px */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9999px;
+            cursor: default;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .sales-calendar-day-today {
+            background-color: #fef08a; /* yellow-200 */
+            font-weight: bold;
+        }
+        .sales-calendar-day-has-sales {
+            background-color: #dbeafe; /* blue-100 */
+            color: #1e40af; /* blue-800 */
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .sales-calendar-day-has-sales:hover {
+            background-color: #bfdbfe; /* blue-200 */
+        }
+        .sales-calendar-day-selected {
+            background-color: #2563eb; /* blue-600 */
+            color: white !important;
+        }
+
         /* Animación para validación de input */
         @keyframes shake {
           10%, 90% { transform: translate3d(-1px, 0, 0); }
@@ -119,6 +148,42 @@
             </div>
         </div>
 
+        <!-- Calendario de Ventas Diarias (NUEVO BANNER) -->
+        <details class="bg-white p-5 rounded-lg shadow-md border border-gray-200 mb-8">
+            <summary class="text-xl font-bold text-gray-800 cursor-pointer">Calendario de Ventas Diarias</summary>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4 pt-4 border-t">
+                <!-- Columna del Calendario -->
+                <div class="md:col-span-2">
+                    <!-- Header del Calendario -->
+                    <div class="flex items-center justify-between mb-4">
+                        <button onclick="navigateSalesCalendar(-1)" class="p-2 rounded-full hover:bg-gray-100" title="Mes anterior">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                        </button>
+                        <h4 id="salesCalendarMonthYear" class="text-lg font-semibold"></h4>
+                        <button onclick="navigateSalesCalendar(1)" class="p-2 rounded-full hover:bg-gray-100" title="Mes siguiente">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                        </button>
+                    </div>
+                    <!-- Grid del Calendario -->
+                    <div class="grid grid-cols-7 gap-1 text-center text-sm font-medium text-gray-500 mb-2">
+                        <span>Do</span><span>Lu</span><span>Ma</span><span>Mi</span><span>Ju</span><span>Vi</span><span>Sá</span>
+                    </div>
+                    <div id="salesCalendarGrid" class="grid grid-cols-7 gap-1">
+                        <!-- Los días se generarán con JS -->
+                    </div>
+                </div>
+
+                <!-- Columna de Detalles de Venta -->
+                <div class="md:col-span-1">
+                    <h4 class="text-lg font-semibold mb-4">Detalle de Ventas</h4>
+                    <div id="salesCalendarDetails" class="space-y-3 max-h-80 overflow-y-auto">
+                        <p class="text-sm text-gray-500">Selecciona un día para ver el detalle.</p>
+                    </div>
+                </div>
+            </div>
+        </details>
+
 
         <!-- Controles: Búsqueda y Acciones -->
         <div class="flex flex-wrap gap-4 mb-6 sticky top-4 bg-gray-100/95 backdrop-blur-sm py-4 z-10">
@@ -206,6 +271,7 @@
             let expenses = [];
             let db, auth, userId, clientsCollectionRef, expensesCollectionRef, settingsDocRef;
             let dashboardDate = new Date();
+            let salesCalendarDate = new Date(); // Fecha para el nuevo calendario
 
 
             if (!firebaseConfig || !firebaseConfig.apiKey) {
@@ -299,11 +365,19 @@
 
             const formatCurrency = (value) => (value || 0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP' });
             const formatDate = (dateString) => new Date(dateString).toLocaleDateString('es-CL', { year: 'numeric', month: 'short', day: 'numeric' });
+            const isSameDay = (d1, d2) => d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+
+            const getAllCompletedOrders = () => {
+                 return clients.flatMap(c => (c.orders || []).map(o => ({...o, clientName: c.name, clientDocId: c.docId })))
+                               .filter(o => o.status !== 'pendiente');
+            };
             
             const renderAll = () => { 
                 renderDashboard(); 
                 renderClients(document.getElementById('searchInput').value);
                 populateQuickOrderClientList();
+                renderSalesCalendar(salesCalendarDate); // Renderizar el nuevo calendario
+                selectSalesCalendarDay(null, true); // Actualizar detalles del calendario
             };
             
             const setupDashboardDateFilters = () => {
@@ -337,6 +411,126 @@
                 monthSelect.addEventListener('change', updateDashboardDate);
                 yearSelect.addEventListener('change', updateDashboardDate);
             };
+
+            // =================================================================
+            // LÓGICA DEL NUEVO CALENDARIO DE VENTAS
+            // =================================================================
+
+            const renderSalesCalendar = (date) => {
+                const month = date.getMonth();
+                const year = date.getFullYear();
+                const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+                document.getElementById('salesCalendarMonthYear').textContent = `${monthNames[month]} ${year}`;
+
+                const gridEl = document.getElementById('salesCalendarGrid');
+                gridEl.innerHTML = '';
+
+                const firstDay = new Date(year, month).getDay();
+                const daysInMonth = 32 - new Date(year, month, 32).getDate();
+                const today = new Date();
+                const allCompletedOrders = getAllCompletedOrders();
+
+                // Rellenar días vacíos al inicio
+                for (let i = 0; i < firstDay; i++) {
+                    gridEl.innerHTML += '<span></span>';
+                }
+
+                // Rellenar días del mes
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dayDate = new Date(year, month, day);
+                    const fullDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const salesOnDay = allCompletedOrders.filter(o => isSameDay(new Date(o.date), dayDate));
+                    
+                    let classes = 'sales-calendar-day';
+                    if (isSameDay(dayDate, today)) {
+                        classes += ' sales-calendar-day-today';
+                    }
+                    if (salesOnDay.length > 0) {
+                        classes += ' sales-calendar-day-has-sales';
+                    }
+                    // Mantener seleccionado el día si coincide
+                    const selectedDayEl = document.querySelector('.sales-calendar-day-selected');
+                    if (selectedDayEl && selectedDayEl.dataset.date === fullDateStr) {
+                         classes += ' sales-calendar-day-selected';
+                    }
+
+                    gridEl.innerHTML += `<span class="${classes}" data-date="${fullDateStr}" onclick="selectSalesCalendarDay('${fullDateStr}')">${day}</span>`;
+                }
+            };
+
+            window.selectSalesCalendarDay = (dateStr, init = false) => {
+                const detailsEl = document.getElementById('salesCalendarDetails');
+                let targetDate;
+
+                // Si es la inicialización, intentamos seleccionar el día de hoy si tiene ventas
+                if (init) {
+                    const todayStr = new Date().toISOString().slice(0, 10);
+                    const selectedDayEl = document.querySelector('.sales-calendar-day-selected');
+                    // Si ya hay un día seleccionado, usamos ese
+                    if (selectedDayEl) {
+                        targetDate = new Date(selectedDayEl.dataset.date + 'T12:00:00');
+                    }
+                    // Si no, intentamos usar el día de hoy
+                    else {
+                         const todayEl = document.querySelector(`[data-date="${todayStr}"]`);
+                         if(todayEl && todayEl.classList.contains('sales-calendar-day-has-sales')) {
+                            targetDate = new Date(todayStr + 'T12:00:00');
+                            todayEl.classList.add('sales-calendar-day-selected');
+                         } else {
+                            detailsEl.innerHTML = '<p class="text-sm text-gray-500">Selecciona un día con ventas (azul) para ver el detalle.</p>';
+                            return;
+                         }
+                    }
+                } else {
+                     // Si se hizo clic en un día
+                    targetDate = new Date(dateStr + 'T12:00:00');
+                    // Quitar selección anterior
+                    document.querySelectorAll('.sales-calendar-day-selected').forEach(el => el.classList.remove('sales-calendar-day-selected'));
+                    // Añadir nueva selección
+                    const newSelectedEl = document.querySelector(`[data-date="${dateStr}"]`);
+                    if(newSelectedEl) newSelectedEl.classList.add('sales-calendar-day-selected');
+                }
+
+                if (!targetDate) return;
+
+                const salesOnDay = getAllCompletedOrders().filter(o => isSameDay(new Date(o.date), targetDate));
+
+                if (salesOnDay.length === 0) {
+                    detailsEl.innerHTML = `<p class="font-semibold mb-2">${formatDate(targetDate)}</p><p class="text-sm text-gray-500">No se registraron ventas este día.</p>`;
+                    return;
+                }
+
+                let totalDaySales = 0;
+                let detailsHtml = `<p class="font-semibold mb-2">Ventas del ${formatDate(targetDate)}</p>`;
+                
+                salesOnDay.forEach(order => {
+                    totalDaySales += order.total;
+                    detailsHtml += `
+                        <div class="text-sm bg-gray-50 p-2 rounded-md">
+                            <p class="font-semibold">${order.clientName}</p>
+                            <p class="text-gray-600">${order.iceQty} kg - ${formatCurrency(order.total)}</p>
+                        </div>
+                    `;
+                });
+
+                detailsHtml += `
+                    <div class="border-t pt-2 mt-2">
+                        <p class="flex justify-between font-bold text-base"><span>Total del Día:</span> <span class="text-green-600">${formatCurrency(totalDaySales)}</span></p>
+                    </div>
+                `;
+                detailsEl.innerHTML = detailsHtml;
+            };
+
+            window.navigateSalesCalendar = (offset) => {
+                salesCalendarDate.setMonth(salesCalendarDate.getMonth() + offset);
+                renderSalesCalendar(new Date(salesCalendarDate)); // Pasamos una copia
+                document.getElementById('salesCalendarDetails').innerHTML = '<p class="text-sm text-gray-500">Selecciona un día para ver el detalle.</p>';
+            };
+
+            // =================================================================
+            // FIN LÓGICA CALENDARIO DE VENTAS
+            // =================================================================
+
 
             const populateQuickOrderClientList = () => {
                 const selectEl = document.getElementById('quickOrderClient');
@@ -876,5 +1070,7 @@
     </script>
 </body>
 </html>
+
+
 
 
